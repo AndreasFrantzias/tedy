@@ -1,0 +1,58 @@
+<section class="d-flex justify-content-between flex-wrap gap-3 mb-4">
+  <div>
+    <span class="pill pill-green mb-3">Organizer · Attendee communication</span>
+    <h1 class="text-gradient">Messaging center</h1>
+    <p class="muted mb-0">Conversations are limited to organizers and attendees with confirmed bookings.</p>
+  </div>
+  <button class="btn-neon" type="button" (click)="showCompose = true">Compose</button>
+</section>
+
+<section class="split-pane">
+  <aside class="glass-card p-3">
+    <button class="btn-ghost w-100 mb-2" type="button" (click)="activeTab = 'inbox'" [class.btn-neon]="activeTab === 'inbox'">Inbox</button>
+    <button class="btn-ghost w-100" type="button" (click)="activeTab = 'sent'" [class.btn-neon]="activeTab === 'sent'">Outbox</button>
+  </aside>
+
+  <div class="glass-card p-4">
+    <ng-container *ngIf="activeTab === 'inbox'">
+      <h2 class="h4 mb-3">Inbox</h2>
+      <div class="d-grid gap-3" *ngIf="inbox$ | async as inbox">
+        <article class="metric-card p-3" *ngFor="let message of inbox" (click)="markRead(message)">
+          <div class="d-flex justify-content-between gap-2"><strong>{{ message.subject }}</strong><span class="pill" [class.pill-amber]="!message.readAt">{{ message.readAt ? 'Read' : 'Unread' }}</span></div>
+          <p class="muted mb-1">From {{ message.sender?.username }} · {{ message.sentAt | date:'short' }}</p>
+          <p>{{ message.body }}</p>
+          <div class="d-flex gap-2"><button class="btn-neon" type="button" (click)="reply(message); $event.stopPropagation()">Reply</button><button class="btn-danger-neon" type="button" (click)="remove(message.id); $event.stopPropagation()">Delete</button></div>
+        </article>
+        <p class="muted" *ngIf="!inbox.length">Inbox is empty.</p>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="activeTab === 'sent'">
+      <h2 class="h4 mb-3">Outbox</h2>
+      <div class="d-grid gap-3" *ngIf="sent$ | async as sent">
+        <article class="metric-card p-3" *ngFor="let message of sent">
+          <div class="d-flex justify-content-between gap-2"><strong>{{ message.subject }}</strong><span class="pill">{{ message.sentAt | date:'short' }}</span></div>
+          <p class="muted mb-1">To {{ message.recipient?.username }}</p>
+          <p>{{ message.body }}</p>
+          <button class="btn-danger-neon" type="button" (click)="remove(message.id)">Delete</button>
+        </article>
+        <p class="muted" *ngIf="!sent.length">No sent messages.</p>
+      </div>
+    </ng-container>
+  </div>
+</section>
+
+<div class="modal-backdrop-glass" *ngIf="showCompose">
+  <div class="glass-card modal-glass p-4">
+    <span class="pill pill-purple mb-3">New message</span>
+    <h2>Compose</h2>
+    <div class="d-grid gap-3">
+      <input class="form-control" type="number" [(ngModel)]="composeRecipientId" placeholder="Recipient user ID" />
+      <input class="form-control" type="number" [(ngModel)]="composeEventId" placeholder="Event ID (optional)" />
+      <input class="form-control" [(ngModel)]="composeSubject" placeholder="Subject" />
+      <textarea class="form-control" rows="5" [(ngModel)]="composeBody" placeholder="Message"></textarea>
+      <div class="alert alert-danger" *ngIf="composeError">{{ composeError }}</div>
+      <div class="d-flex justify-content-end gap-2"><button class="btn-ghost" type="button" (click)="showCompose = false">Cancel</button><button class="btn-neon" type="button" (click)="send()">Send</button></div>
+    </div>
+  </div>
+</div>

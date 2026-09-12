@@ -1,0 +1,82 @@
+<section class="glass-card p-4 p-lg-5 mb-5">
+  <div class="d-flex justify-content-between flex-wrap gap-3 mb-4">
+    <div>
+      <span class="pill pill-purple mb-3">Create Event Wizard</span>
+      <h1 class="text-gradient">{{ eventDbId ? 'Modify event' : 'Launch a new event' }}</h1>
+      <p class="muted mb-0">Ticket quantities are blocked from exceeding total capacity.</p>
+    </div>
+    <div class="metric-card p-3">
+      <span class="muted">Ticket allocation</span>
+      <h3 [class.text-danger]="capacityExceeded">{{ totalTicketQuantity }} / {{ form.controls.capacity.value }}</h3>
+    </div>
+  </div>
+
+  <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <div class="alert alert-warning" *ngIf="capacityExceeded">Ticket type quantities exceed event capacity.</div>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" class="d-grid gap-4">
+    <div class="row g-3">
+      <div class="col-md-6"><label class="form-label">Title</label><input class="form-control" formControlName="title" /></div>
+      <div class="col-md-3"><label class="form-label">Type</label><input class="form-control" formControlName="eventType" /></div>
+      <div class="col-md-3"><label class="form-label">Capacity</label><input class="form-control" type="number" formControlName="capacity" /></div>
+      <div class="col-md-4"><label class="form-label">Venue</label><input class="form-control" formControlName="venue" /></div>
+      <div class="col-md-4"><label class="form-label">Address</label><input class="form-control" formControlName="address" /></div>
+      <div class="col-md-2"><label class="form-label">City</label><input class="form-control" formControlName="city" /></div>
+      <div class="col-md-2"><label class="form-label">Country</label><input class="form-control" formControlName="country" /></div>
+      <div class="col-md-3"><label class="form-label">Start</label><input class="form-control" type="datetime-local" formControlName="startDateTime" /></div>
+      <div class="col-md-3"><label class="form-label">End</label><input class="form-control" type="datetime-local" formControlName="endDateTime" /></div>
+      <div class="col-md-3"><label class="form-label">Latitude</label><input class="form-control" type="number" formControlName="lat" (change)="syncMapFromForm()" /></div>
+      <div class="col-md-3"><label class="form-label">Longitude</label><input class="form-control" type="number" formControlName="lng" (change)="syncMapFromForm()" /></div>
+      <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" rows="4" formControlName="description"></textarea></div>
+    </div>
+
+    <div class="glass-card p-3">
+      <div class="d-flex justify-content-between flex-wrap gap-2 mb-3">
+        <div>
+          <h2 class="h4 mb-1">OpenStreetMap location picker</h2>
+          <p class="muted mb-0">Click or drag the marker to store precise event coordinates.</p>
+        </div>
+        <span class="pill pill-green">{{ form.controls.lat.value || '37.9838' }}, {{ form.controls.lng.value || '23.7275' }}</span>
+      </div>
+      <div #eventMapPicker class="map-picker"></div>
+    </div>
+
+    <div class="glass-card p-3">
+      <div class="d-flex justify-content-between align-items-center mb-3"><h2 class="h4 mb-0">Categories</h2><button class="btn-ghost" type="button" (click)="addCategory()">Add category</button></div>
+      <div formArrayName="categories" class="row g-2">
+        <div class="col-md-4 d-flex gap-2" *ngFor="let category of categories.controls; let i = index">
+          <input class="form-control" [formControlName]="i" placeholder="Music" />
+          <button class="btn-danger-neon" type="button" (click)="removeCategory(i)" [disabled]="categories.length === 1">Remove</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass-card p-3">
+      <div class="d-flex justify-content-between align-items-center mb-3"><h2 class="h4 mb-0">Ticket Types</h2><button class="btn-ghost" type="button" (click)="addTicketType()">Add ticket type</button></div>
+      <div formArrayName="ticketTypes" class="d-grid gap-3">
+        <div class="row g-2 metric-card p-3" *ngFor="let ticket of ticketTypes.controls; let i = index" [formGroupName]="i">
+          <div class="col-md-2"><label class="form-label">ID</label><input class="form-control" formControlName="ticketTypeId" /></div>
+          <div class="col-md-4"><label class="form-label">Name</label><input class="form-control" formControlName="name" /></div>
+          <div class="col-md-2"><label class="form-label">Price</label><input class="form-control" type="number" formControlName="price" /></div>
+          <div class="col-md-2"><label class="form-label">Quantity</label><input class="form-control" type="number" formControlName="quantity" /></div>
+          <div class="col-md-2 d-flex align-items-end"><button class="btn-danger-neon w-100" type="button" (click)="removeTicketType(i)" [disabled]="ticketTypes.length === 1">Remove</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass-card p-3">
+      <div class="d-flex justify-content-between align-items-center mb-3"><h2 class="h4 mb-0">Media URLs</h2><button class="btn-ghost" type="button" (click)="addPhoto()">Add photo</button></div>
+      <div formArrayName="photos" class="d-grid gap-2">
+        <div class="d-flex gap-2" *ngFor="let photo of photos.controls; let i = index">
+          <input class="form-control" [formControlName]="i" placeholder="https://..." />
+          <button class="btn-danger-neon" type="button" (click)="removePhoto(i)">Remove</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2">
+      <a class="btn-ghost" routerLink="/my-events">Cancel</a>
+      <button class="btn-success-neon" type="submit" [disabled]="form.invalid || capacityExceeded">Save Event</button>
+    </div>
+  </form>
+</section>

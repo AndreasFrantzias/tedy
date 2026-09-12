@@ -1,0 +1,17 @@
+<form #userForm="ngForm" (ngSubmit)="save()">
+  <input
+    [(ngModel)]="user.email"
+    name="email"
+    #emailCtrl="ngModel"
+    required
+    email>
+  <p *ngIf="emailCtrl.invalid && emailCtrl.touched">
+    Μη έγκυρη διεύθυνση email.
+  </p>
+  <button type="submit" [disabled]="userForm.invalid">
+    Αποθήκευση
+  </button>
+</form>
+<p>
+  {{user.username}}
+</p>

@@ -1,0 +1,110 @@
+import { AfterViewInit, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+import * as L from 'leaflet';
+import { EventsApiService } from '../events-api.service';
+import { BookingsApiService } from '../bookings-api.service';
+import { AuthService } from '../auth/auth.service';
+import { EventDto } from '../model/event.dto';
+
+// Leaflet needs explicit marker image URLs when bundled by Angular.
+delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
+
+@Component({
+  selector: 'app-event-detail-component',
+  standalone: false,
+  templateUrl: './event-detail-component.html',
+  styleUrl: './event-detail-component.css',
+})
+export class EventDetailComponent implements OnInit, AfterViewInit {
+  @ViewChild('mapContainer') mapContainer?: ElementRef<HTMLDivElement>;
+
+  event: EventDto | null = null;
+  selectedTicketTypeId: number | null = null;
+  numberOfTickets = 1;
+  bookingMessage = '';
+  bookingError = '';
+  isAuthenticated = false;
+  showBookingModal = false;
+
+  private map: L.Map | null = null;
+  private eventDbId!: number;
+
+  constructor(
+    private route: ActivatedRoute,
+    private eventsApi: EventsApiService,
+    private bookingsApi: BookingsApiService,
+    private authService: AuthService,
+  ) {}
+
+  ngOnInit(): void {
+    this.isAuthenticated = this.authService.isLoggedIn();
+    this.eventDbId = Number(this.route.snapshot.paramMap.get('id'));
+    this.loadEvent();
+  }
+
+  ngAfterViewInit(): void {
+    // The map waits until the event details and coordinates have loaded.
+  }
+
+  private loadEvent(): void {
+    this.eventsApi.findOne(this.eventDbId).subscribe((event) => {
+      this.event = event;
+      this.selectedTicketTypeId = event.ticketTypes[0]?.id ?? null;
+      setTimeout(() => this.initMap(), 0);
+    });
+  }
+
+  private initMap(): void {
+    if (!this.event || this.event.lat === null || this.event.lng === null || !this.mapContainer) {
+      return;
+    }
+    if (this.map) {
+      this.map.remove();
+    }
+    this.map = L.map(this.mapContainer.nativeElement).setView([this.event.lat, this.event.lng], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(this.map);
+    L.marker([this.event.lat, this.event.lng]).addTo(this.map).bindPopup(this.event.venue);
+  }
+
+  book(): void {
+    if (!this.event || !this.selectedTicketTypeId) {
+      return;
+    }
+    this.showBookingModal = true;
+  }
+
+  confirmBooking(): void {
+    if (!this.event || !this.selectedTicketTypeId) {
+      return;
+    }
+    this.bookingError = '';
+    this.bookingMessage = '';
+    this.bookingsApi
+      .create({
+        eventId: this.event.id,
+        ticketTypeId: this.selectedTicketTypeId,
+        numberOfTickets: this.numberOfTickets,
+      })
+      .subscribe({
+        next: () => {
+          this.bookingMessage = 'Booking confirmed!';
+          this.showBookingModal = false;
+          this.loadEvent();
+        },
+        error: (err) => {
+          this.bookingError = err.error?.message ?? 'Booking failed';
+        },
+      });
+  }
+
+  selectedTicketName(): string {
+    return this.event?.ticketTypes.find((ticket) => ticket.id === this.selectedTicketTypeId)?.name ?? 'ticket';
+  }
+}

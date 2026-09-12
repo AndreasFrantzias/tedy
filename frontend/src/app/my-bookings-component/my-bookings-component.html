@@ -1,0 +1,26 @@
+<section class="mb-4">
+  <span class="pill pill-green mb-3">Confirmed reservations</span>
+  <h1 class="text-gradient">My bookings</h1>
+  <p class="muted">Bookings are final and cannot be cancelled.</p>
+</section>
+
+<section class="glass-card p-4" *ngIf="bookings$ | async as bookings; else loading">
+  <div class="table-responsive">
+    <table class="glass-table">
+      <thead><tr><th>Booking</th><th>Event</th><th>Ticket</th><th>Quantity</th><th>Total</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let booking of bookings">
+          <td>{{ booking.bookingId }}</td>
+          <td><a [routerLink]="['/events', booking.event.id]">{{ booking.event.title }}</a></td>
+          <td>{{ booking.ticketType.name }}</td>
+          <td>{{ booking.numberOfTickets }}</td>
+          <td>{{ booking.totalCost | currency:'EUR' }}</td>
+          <td><span class="pill pill-green">{{ booking.status }}</span></td>
+        </tr>
+        <tr *ngIf="!bookings.length"><td colspan="6" class="text-center muted">No bookings yet.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<ng-template #loading><div class="skeleton"></div></ng-template>

@@ -1,0 +1,14 @@
+<div class="card shadow-sm" *ngIf="user$ | async as user">
+  <div class="card-body">
+    <h3 class="card-title">{{ user.username }}</h3>
+    <span class="badge text-bg-secondary mb-3">{{ user.status }}</span>
+    <dl class="row mb-0">
+      <dt class="col-sm-3">Email</dt><dd class="col-sm-9">{{ user.email }}</dd>
+      <dt class="col-sm-3">Roles</dt><dd class="col-sm-9">{{ user.roles.join(', ') }}</dd>
+      <dt class="col-sm-3">Name</dt><dd class="col-sm-9">{{ user.firstName }} {{ user.lastName }}</dd>
+      <dt class="col-sm-3">Phone</dt><dd class="col-sm-9">{{ user.phone }}</dd>
+      <dt class="col-sm-3">Address</dt><dd class="col-sm-9">{{ user.address }}, {{ user.city }}, {{ user.country }}</dd>
+      <dt class="col-sm-3">AFM</dt><dd class="col-sm-9">{{ user.afm }}</dd>
+    </dl>
+  </div>
+</div>

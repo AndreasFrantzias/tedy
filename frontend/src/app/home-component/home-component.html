@@ -1,0 +1,79 @@
+<section class="stitch-hero" *ngIf="authState$ | async as authState">
+  <div>
+    <span class="stitch-kicker mb-4"><span class="pulse-dot"></span>New Events Added Daily</span>
+    <h1 class="hero-title neon-glow mb-4">Experience the <br><span class="text-gradient">Nightlife</span></h1>
+    <p class="muted fs-5 mb-4">Discover exclusive underground parties, VIP club nights, and massive festivals. Secure your access with NeonEvents.</p>
+    <div class="d-flex flex-wrap gap-2">
+      <a class="btn-neon" routerLink="/events">Explore Events</a>
+      <a class="btn-ghost" routerLink="/events">View Demo</a>
+      <a class="btn-success-neon" routerLink="/my-bookings" *ngIf="authState.roles.includes('attendee')">My Tickets</a>
+      <a class="btn-amber-neon" routerLink="/admin/users" *ngIf="authState.roles.includes('admin')">Admin Console</a>
+    </div>
+    <div class="architecture-note mt-4">
+      <div class="d-flex align-items-center gap-2 text-light mb-2"><span class="material-symbols-outlined">account_tree</span>Architecture Note: Auth Flow</div>
+      <p class="mb-1">1. Credentials submitted via Glassmorphism form.</p>
+      <p class="mb-1">2. POST to /api/v1/auth/login.</p>
+      <p class="mb-1">3. JWT received and stored securely in AuthStore.</p>
+      <p class="mb-0">4. JWT Interceptor attached to subsequent requests.</p>
+    </div>
+  </div>
+
+  <div class="glass-card auth-card p-4 p-lg-5" *ngIf="!authState.authenticated; else dashboardCard">
+    <app-login-component></app-login-component>
+  </div>
+
+  <ng-template #dashboardCard>
+    <div class="glass-card p-4">
+      <p class="muted mb-1">Signed in as</p>
+      <h2 class="mb-3">{{ authState.username }}</h2>
+      <div class="d-flex flex-wrap gap-2 mb-4">
+        <span class="pill pill-purple" *ngFor="let role of authState.roles">{{ role }}</span>
+      </div>
+      <div class="grid-cards" style="grid-template-columns: 1fr;">
+        <a class="metric-card p-3 text-decoration-none" routerLink="/events">Browse live events</a>
+        <a class="metric-card p-3 text-decoration-none" routerLink="/messages">Open message center</a>
+        <a class="metric-card p-3 text-decoration-none" routerLink="/my-events" *ngIf="authState.roles.includes('organizer')">Manage organizer events</a>
+      </div>
+    </div>
+  </ng-template>
+</section>
+
+<section class="two-col mb-5">
+  <div class="glass-card event-visual p-4 d-flex flex-column justify-content-between">
+    <div>
+      <span class="pill pill-green mb-3">12k+ users joined this week</span>
+      <h2 class="text-gradient">Neon tickets, live capacity, encrypted checkout.</h2>
+    </div>
+    <div class="visual-orb"></div>
+    <div class="glass-card floating-panel p-3">
+      <span class="pill pill-amber mb-2">Sold out soon</span>
+      <h3 class="h5 mb-1">Synthwave City 2024</h3>
+      <p class="muted mb-2">Nov 24 · The Grid Warehouse</p>
+      <a class="btn-success-neon w-100 text-center" routerLink="/events">Browse Tickets</a>
+    </div>
+  </div>
+  <div class="glass-card p-4">
+    <span class="pill pill-purple mb-3">Platform modules</span>
+    <div class="d-grid gap-3">
+      <div class="metric-card p-3"><strong>Attendee booking</strong><p class="muted mb-0">Ticket tiers, confirmation modals, and my-ticket dashboards.</p></div>
+      <div class="metric-card p-3"><strong>Organizer studio</strong><p class="muted mb-0">Create, publish, cancel, notify, and track bookings.</p></div>
+      <div class="metric-card p-3"><strong>Admin console</strong><p class="muted mb-0">Approve users and export event datasets in XML or JSON.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="mb-5" *ngIf="recommendations$ | async as recommendations">
+  <div class="d-flex justify-content-between align-items-end mb-3" *ngIf="recommendations.length">
+    <div>
+      <span class="pill pill-green">Recommended</span>
+      <h2 class="mt-2">Because of your activity</h2>
+    </div>
+  </div>
+  <div class="grid-cards" *ngIf="recommendations.length">
+    <a class="event-card p-3 text-decoration-none" *ngFor="let rec of recommendations" [routerLink]="['/events', rec.id]">
+      <span class="pill pill-green mb-3">{{ rec.city }}</span>
+      <h3>{{ rec.title }}</h3>
+      <p class="muted mb-0">{{ rec.startDateTime | date:'mediumDate' }}</p>
+    </a>
+  </div>
+</section>

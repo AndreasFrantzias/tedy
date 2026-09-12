@@ -1,0 +1,19 @@
+<div>
+  <span class="pill pill-purple mb-3">Attendee access</span>
+  <h2 class="mb-2">Welcome Back</h2>
+  <p class="muted mb-4">Login to book tickets, manage events, or approve new users.</p>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" class="d-grid gap-3">
+    <div>
+      <label class="form-label">Username</label>
+      <input class="form-control" formControlName="username" autocomplete="username" placeholder="matbonis" />
+    </div>
+    <div>
+      <label class="form-label">Password</label>
+      <input class="form-control" type="password" formControlName="password" autocomplete="current-password" placeholder="••••••••" />
+    </div>
+    <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+    <button class="btn-neon w-100" type="submit" [disabled]="form.invalid">Sign In</button>
+    <a class="btn-ghost text-center" routerLink="/register">Need an account? Register</a>
+  </form>
+</div>

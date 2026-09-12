@@ -1,0 +1,89 @@
+<section class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+  <div>
+    <span class="pill pill-purple mb-3">Organizer Pro</span>
+    <h1 class="text-gradient">Event Monitoring</h1>
+    <p class="muted mb-0">Real-time performance of your live and upcoming events.</p>
+  </div>
+  <div class="d-flex gap-2">
+    <button class="btn-ghost" type="button"><span class="material-symbols-outlined align-middle">download</span></button>
+    <button class="btn-ghost" type="button"><span class="material-symbols-outlined align-middle">refresh</span></button>
+    <a class="btn-neon" routerLink="/my-events/new"><span class="material-symbols-outlined align-middle">add_circle</span> Create Event Wizard</a>
+  </div>
+</section>
+
+<section class="split-pane" *ngIf="events$ | async as events; else loading">
+  <aside class="glass-card p-4">
+    <h2 class="h4">System Architect Notes</h2>
+    <div class="architecture-note mb-3">
+      <p class="mb-2"><strong>Protected Routes:</strong> Layout checks AuthContext.user.role === ORGANIZER.</p>
+      <p class="mb-2"><strong>AuthStore:</strong> JWT persistence with auto-refresh on 401.</p>
+      <p class="mb-0"><strong>State:</strong> Optimistic deletes and atomic cancel actions.</p>
+    </div>
+    <h2 class="h4">Portfolio</h2>
+    <div class="d-grid gap-3">
+      <div class="metric-card p-3" *ngFor="let event of events">
+        <div class="d-flex justify-content-between gap-2">
+          <strong>{{ event.title }}</strong>
+          <span class="pill" [class.pill-green]="event.status === 'PUBLISHED'" [class.pill-danger]="event.status === 'CANCELLED'">{{ event.status }}</span>
+        </div>
+        <p class="muted mb-2">{{ event.startDateTime | date:'mediumDate' }} · {{ event.city }}</p>
+        <div class="d-flex flex-wrap gap-2">
+          <a class="btn-ghost" [routerLink]="['/events', event.id]">View</a>
+          <a class="btn-ghost" [routerLink]="['/my-events', event.id, 'edit']" [class.disabled]="(event._count?.bookings || 0) > 0">Modify</a>
+          <button class="btn-success-neon" type="button" (click)="publish(event.id)" *ngIf="event.status === 'DRAFT'">Publish</button>
+          <button class="btn-danger-neon" type="button" (click)="remove(event.id)" [disabled]="event.status !== 'DRAFT' || (event._count?.bookings || 0) > 0">Delete</button>
+          <button class="btn-amber-neon" type="button" (click)="openBroadcast(event.id)" *ngIf="event.status === 'PUBLISHED'">Cancel + notify</button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="glass-card p-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+      <h2 class="h4 mb-0">Real-time booking tables</h2>
+      <div class="d-flex gap-2"><input class="form-control" placeholder="Search" /><span class="pill">All Status</span><span class="pill">Sort by: Revenue</span></div>
+    </div>
+    <ng-container *ngFor="let event of events">
+      <div class="metric-card p-3 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h3 class="h5 mb-0">{{ event.title }}</h3>
+          <span class="pill pill-green">{{ event._count?.bookings || 0 }} bookings</span>
+        </div>
+        <div class="table-responsive">
+          <table class="glass-table">
+            <thead><tr><th>Attendee</th><th>Ticket</th><th>Qty</th><th>Total</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let booking of event.bookings">
+                <td>{{ booking.attendee.username }}</td>
+                <td>{{ booking.ticketType.name }}</td>
+                <td>{{ booking.numberOfTickets }}</td>
+                <td>{{ booking.totalCost | currency:'EUR' }}</td>
+                <td><span class="pill pill-green">{{ booking.status }}</span></td>
+              </tr>
+              <tr *ngIf="!event.bookings?.length"><td colspan="5" class="text-center muted">No bookings yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+</section>
+
+<div class="modal-backdrop-glass" *ngIf="broadcastTargetId">
+  <div class="glass-card modal-glass p-4">
+    <span class="pill pill-amber mb-3">Broadcast before cancellation</span>
+    <h2>Notify attendees</h2>
+    <p class="muted">Send a message explaining the cancellation. The event will be cancelled after the broadcast is sent.</p>
+    <div class="d-grid gap-3">
+      <input class="form-control" [(ngModel)]="broadcastSubject" placeholder="Subject" />
+      <textarea class="form-control" rows="5" [(ngModel)]="broadcastBody" placeholder="Message"></textarea>
+      <div class="alert alert-success" *ngIf="broadcastResult">{{ broadcastResult }}</div>
+      <div class="d-flex justify-content-end gap-2">
+        <button class="btn-ghost" type="button" (click)="broadcastTargetId = null">Close</button>
+        <button class="btn-amber-neon" type="button" (click)="sendBroadcast()" [disabled]="!broadcastSubject || !broadcastBody">Send and cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<ng-template #loading><div class="skeleton"></div></ng-template>

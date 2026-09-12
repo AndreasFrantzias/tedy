@@ -1,0 +1,66 @@
+<div class="app-shell">
+  <nav class="navbar navbar-expand-lg navbar-dark glass-nav mb-4">
+    <div class="app-main d-flex align-items-center gap-3 py-2">
+      <a class="navbar-brand d-flex align-items-center gap-2 fw-black" routerLink="/home">
+        <span class="brand-mark">N</span>
+        <span>NeonEvents</span>
+      </a>
+      <button class="navbar-toggler ms-auto" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="mainNav">
+        <ng-container *ngIf="authState$ | async as authState">
+          <ul class="navbar-nav me-auto mb-2 mb-lg-0 align-items-lg-center gap-lg-1">
+            <li class="nav-item"><a class="nav-link" routerLink="/home" routerLinkActive="active">Home</a></li>
+            <li class="nav-item"><a class="nav-link" routerLink="/events" routerLinkActive="active">Browse</a></li>
+            <li class="nav-item" *ngIf="authState.roles.includes('attendee')">
+              <a class="nav-link" routerLink="/my-bookings" routerLinkActive="active">Bookings</a>
+            </li>
+            <li class="nav-item" *ngIf="authState.roles.includes('organizer')">
+              <a class="nav-link" routerLink="/my-events" routerLinkActive="active">Organizer Studio</a>
+            </li>
+            <li class="nav-item" *ngIf="authState.authenticated">
+              <a class="nav-link" routerLink="/messages" routerLinkActive="active">
+                Inbox
+                <span *ngIf="(unreadCount$ | async) as count" class="badge rounded-pill text-bg-danger ms-1">{{ count }}</span>
+              </a>
+            </li>
+            <li class="nav-item" *ngIf="authState.roles.includes('admin')">
+              <a class="nav-link" routerLink="/admin/users" routerLinkActive="active">Admin Console</a>
+            </li>
+          </ul>
+
+          <div class="d-flex align-items-center gap-2" *ngIf="!authState.authenticated">
+            <a class="btn-ghost" routerLink="/register">Register</a>
+            <a class="btn-neon" routerLink="/login">Sign In</a>
+          </div>
+
+          <div class="d-flex align-items-center gap-2" *ngIf="authState.authenticated">
+            <span class="pill pill-purple">{{ authState.username }}</span>
+            <button class="btn-ghost" type="button" (click)="logout()">Logout</button>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+  </nav>
+
+  <main class="app-main">
+    <router-outlet></router-outlet>
+  </main>
+
+  <footer class="app-main app-footer glass-card p-4 mt-5">
+    <div>
+      <a class="navbar-brand d-flex align-items-center gap-2 fw-black mb-2" routerLink="/home">
+        <span class="brand-mark brand-mark-sm">N</span>
+        <span>NeonEvents</span>
+      </a>
+      <p class="muted mb-0">Premium event management, secure ticketing, organizer tools, and attendee messaging.</p>
+    </div>
+    <div class="footer-links">
+      <a routerLink="/events">Browse Events</a>
+      <a routerLink="/register">Create Account</a>
+      <a routerLink="/messages">Support Inbox</a>
+    </div>
+  </footer>
+</div>

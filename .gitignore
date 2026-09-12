@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+test-dist/
+.angular/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.pem
+certs/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+
+# Test coverage
+coverage/
+
+# Local agent settings
+.claude/settings.local.json
+
+# Large datasets (exceed GitHub's 100MB file limit)
+rel_event_csvs/
+*.csv

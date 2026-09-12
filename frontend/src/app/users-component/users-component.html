@@ -1,0 +1,90 @@
+<div class="admin-layout app-main-wide" *ngIf="isAdmin$ | async; else notAdmin">
+  <aside class="glass-card admin-sidebar p-3">
+    <h2 class="h5 mb-3">NeonEvent Admin</h2>
+    <a class="admin-link active"><span class="material-symbols-outlined">group</span>User Management</a>
+    <a class="admin-link"><span class="material-symbols-outlined">event</span>Events</a>
+    <a class="admin-link"><span class="material-symbols-outlined">confirmation_number</span>Ticketing</a>
+    <a class="admin-link"><span class="material-symbols-outlined">payments</span>Revenue</a>
+    <button class="btn-amber-neon w-100 mt-3" type="button" (click)="activeTab = 'export'"><span class="material-symbols-outlined align-middle">download</span> Export Data</button>
+  </aside>
+
+  <section>
+    <div class="mb-4">
+      <span class="pill pill-amber mb-3">Admin Console</span>
+      <h1 class="text-gradient">System Oversight</h1>
+      <p class="muted">Manage roles, approve registration requests, and export platform event data.</p>
+    </div>
+
+    <div class="glass-card p-3 p-lg-4">
+      <div class="d-flex flex-wrap justify-content-between gap-3 mb-4">
+    <div class="d-flex flex-wrap gap-2">
+      <button class="btn-ghost" [class.btn-amber-neon]="activeTab === 'pending'" type="button" (click)="activeTab = 'pending'">Pending Approval</button>
+      <button class="btn-ghost" [class.btn-amber-neon]="activeTab === 'all'" type="button" (click)="activeTab = 'all'">All Users</button>
+      <button class="btn-ghost" [class.btn-amber-neon]="activeTab === 'organizers'" type="button" (click)="activeTab = 'organizers'">Organizers</button>
+      <button class="btn-ghost" [class.btn-amber-neon]="activeTab === 'attendees'" type="button" (click)="activeTab = 'attendees'">Attendees</button>
+      <button class="btn-ghost" [class.btn-amber-neon]="activeTab === 'export'" type="button" (click)="activeTab = 'export'">Data Export</button>
+    </div>
+    <input class="form-control" style="max-width: 320px;" [(ngModel)]="query" placeholder="Search users" />
+      </div>
+
+  <ng-container *ngIf="activeTab === 'pending'">
+    <div class="table-responsive" *ngIf="pendingUsers$ | async as pendingUsers">
+      <table class="glass-table">
+        <thead><tr><th>User</th><th>Email</th><th>Location</th><th>Tax ID</th><th>Actions</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let user of pendingUsers">
+            <ng-container *ngIf="matches(user)">
+              <td><strong>{{ user.username }}</strong><br><span class="muted">{{ user.firstName }} {{ user.lastName }}</span></td>
+              <td>{{ user.email }}</td>
+              <td>{{ user.city }}, {{ user.country }}</td>
+              <td>{{ user.afm }}</td>
+              <td><button class="btn-success-neon me-2" type="button" (click)="approve(user.id)">Approve</button><button class="btn-danger-neon" type="button" (click)="reject(user.id)">Reject</button></td>
+            </ng-container>
+          </tr>
+          <tr *ngIf="!pendingUsers.length"><td colspan="5" class="text-center muted">No pending registrations.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="activeTab === 'all' || activeTab === 'organizers' || activeTab === 'attendees'">
+    <div class="table-responsive" *ngIf="users$ | async as users">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <span class="pill">{{ visibleUsers(users).length }} matching users</span>
+        <span class="muted">Paginated table shell · connect page controls when API pagination is enabled</span>
+      </div>
+      <table class="glass-table">
+        <thead><tr><th>User</th><th>Email</th><th>Roles</th><th>Status</th><th>Location</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let user of visibleUsers(users)">
+            <td><strong>{{ user.username }}</strong><br><span class="muted">{{ user.firstName }} {{ user.lastName }}</span></td>
+            <td>{{ user.email }}</td>
+            <td><span class="pill pill-purple me-1" *ngFor="let role of user.roles">{{ role }}</span></td>
+            <td><span class="pill" [class.pill-green]="user.status === 'APPROVED'" [class.pill-amber]="user.status === 'PENDING'" [class.pill-danger]="user.status === 'REJECTED'">{{ user.status }}</span></td>
+            <td>{{ user.city }}, {{ user.country }}</td>
+          </tr>
+          <tr *ngIf="!visibleUsers(users).length"><td colspan="5" class="text-center muted">No users match this view.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </ng-container>
+
+      <ng-container *ngIf="activeTab === 'export'">
+        <div class="glass-card p-4 mb-4">
+          <span class="material-symbols-outlined text-gradient display-6">database</span>
+          <h2>Data Export Utility</h2>
+          <p class="muted">Export system-wide event data in machine-readable formats for deep analytics and legacy system integration.</p>
+          <div class="two-col">
+            <div class="metric-card export-card p-4"><div><span class="pill pill-amber mb-3">code</span><h2>Export to XML</h2><p class="muted">Schema version 2.4.0</p></div><a class="btn-amber-neon" [href]="exportXmlUrl" target="_blank">.XML</a></div>
+            <div class="metric-card export-card p-4"><div><span class="pill pill-green mb-3">data_object</span><h2>Export to JSON</h2><p class="muted">Serialized objects</p></div><a class="btn-success-neon" [href]="exportJsonUrl" target="_blank">.JSON</a></div>
+          </div>
+        </div>
+        <div class="architecture-note">AdminGuard checks for role === ADMIN in JWT payload before component mount. ExportUtility uses stream-based handlers and typed API services.</div>
+      </ng-container>
+    </div>
+  </section>
+</div>
+
+<ng-template #notAdmin>
+  <div class="glass-card p-5 text-center"><h1>Admin access required</h1><p class="muted">This panel is restricted to approved admins.</p></div>
+</ng-template>
