@@ -1,5 +1,5 @@
 export interface JwtPayload {
-  sub: number;
-  username: string;
-  roles: string[];
+  sub: number;          // ID του χρήστη
+  username: string;     // Όνομα χρήστη
+  roles: string[];      // Ρόλοι του χρήστη
 }

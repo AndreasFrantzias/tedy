@@ -23,30 +23,35 @@ interface AuthedRequest extends Request {
 export class MessagingController {
   constructor(private readonly messagingService: MessagingService) {}
 
+  // Inbox (μόνο organizer ή attendee)
   @Get('inbox')
   @Roles('organizer', 'attendee')
   inbox(@Req() req: AuthedRequest) {
     return this.messagingService.inbox(req.user!.userId);
   }
 
+  // Sent messages
   @Get('sent')
   @Roles('organizer', 'attendee')
   sent(@Req() req: AuthedRequest) {
     return this.messagingService.sent(req.user!.userId);
   }
 
+  // Αριθμός μη αναγνωσμένων
   @Get('unread-count')
   @Roles('organizer', 'attendee')
   unreadCount(@Req() req: AuthedRequest) {
     return this.messagingService.unreadCount(req.user!.userId);
   }
 
+  // Αποστολή μηνύματος
   @Post()
   @Roles('organizer', 'attendee')
   send(@Req() req: AuthedRequest, @Body() dto: SendMessageDto) {
     return this.messagingService.send(req.user!.userId, dto);
   }
 
+  // Broadcast σε όλους των συμμετεχόντων event
   @Post('broadcast/:eventId')
   @Roles('organizer')
   broadcast(
@@ -57,12 +62,14 @@ export class MessagingController {
     return this.messagingService.broadcast(req.user!.userId, eventId, dto);
   }
 
+  // Σήμανση ως αναγνωσμένο
   @Patch(':id/read')
   @Roles('organizer', 'attendee')
   markRead(@Param('id', ParseIntPipe) id: number, @Req() req: AuthedRequest) {
     return this.messagingService.markRead(id, req.user!.userId);
   }
 
+  // Διαγραφή μηνύματος
   @Delete(':id')
   @Roles('organizer', 'attendee')
   remove(@Param('id', ParseIntPipe) id: number, @Req() req: AuthedRequest) {

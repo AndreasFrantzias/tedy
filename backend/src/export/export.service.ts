@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 export class ExportService {
   constructor(private readonly prisma: PrismaService) {}
 
+  // Φορτώνει όλα τα events μαζί με τις σχετικές σχέσεις
   private async loadEvents() {
     return this.prisma.event.findMany({
       include: {
@@ -23,6 +24,7 @@ export class ExportService {
     });
   }
 
+  // Escape για XML
   private escapeXml(value: string): string {
     return value
       .replace(/&/g, '&amp;')
@@ -32,6 +34,7 @@ export class ExportService {
       .replace(/'/g, '&apos;');
   }
 
+  // Μετατροπή σε JSON
   async toJson() {
     const events = await this.loadEvents();
     return {
@@ -75,6 +78,7 @@ export class ExportService {
     };
   }
 
+  // Μετατροπή σε XML
   async toXml(): Promise<string> {
     const events = await this.loadEvents();
     const esc = (v: string) => this.escapeXml(v);

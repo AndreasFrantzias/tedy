@@ -13,8 +13,8 @@ export interface BmfOptions {
 }
 
 /**
- * Small Biased Matrix Factorization implementation for the recommender.
- * It is trained from scratch with stochastic gradient descent.
+ * Μικρή υλοποίηση Biased Matrix Factorization
+ * Χρησιμοποιεί μόνο βασικές μαθηματικές λειτουργίες
  */
 export class BiasedMatrixFactorization {
   private readonly numFactors: number;
@@ -23,7 +23,7 @@ export class BiasedMatrixFactorization {
   private readonly epochs: number;
   private readonly seed: number;
 
-  private mu = 0;
+  private mu = 0; // Μέσος όρος όλων των βαθμολογιών
   private userBias: Float64Array = new Float64Array(0);
   private itemBias: Float64Array = new Float64Array(0);
   private userFactors: Float64Array[] = [];
@@ -37,13 +37,16 @@ export class BiasedMatrixFactorization {
     this.seed = options.seed ?? 1337;
   }
 
+  // Εκπαίδευση με SGD
   fit(interactions: Interaction[], numUsers: number, numItems: number): void {
+    // Μέσος όρος βαθμολογιών
     this.mu =
       interactions.length === 0
         ? 0
         : interactions.reduce((sum, r) => sum + r.rating, 0) /
           interactions.length;
 
+    // Αρχικοποίηση bias και factors
     this.userBias = new Float64Array(numUsers);
     this.itemBias = new Float64Array(numItems);
     const random = mulberry32(this.seed);
@@ -54,14 +57,16 @@ export class BiasedMatrixFactorization {
       randomVector(this.numFactors, random),
     );
 
+    // Επανάληψη epochs
     for (let epoch = 0; epoch < this.epochs; epoch++) {
       for (const { userIndex, itemIndex, rating } of interactions) {
         const pu = this.userFactors[userIndex];
         const qi = this.itemFactors[itemIndex];
 
-          const prediction = this.predictIndices(userIndex, itemIndex);
-          const error = rating - prediction;
+        const prediction = this.predictIndices(userIndex, itemIndex);
+        const error = rating - prediction;
 
+        // Ενημέρωση bias
         this.userBias[userIndex] +=
           this.learningRate *
           (error - this.regularization * this.userBias[userIndex]);
@@ -69,6 +74,7 @@ export class BiasedMatrixFactorization {
           this.learningRate *
           (error - this.regularization * this.itemBias[itemIndex]);
 
+        // Ενημέρωση factors
         for (let f = 0; f < this.numFactors; f++) {
           const puf = pu[f];
           const qif = qi[f];
@@ -81,6 +87,7 @@ export class BiasedMatrixFactorization {
     }
   }
 
+  // Πρόβλεψη βαθμολογίας
   predictIndices(userIndex: number, itemIndex: number): number {
     if (!this.hasUser(userIndex) || itemIndex < 0 || itemIndex >= this.itemFactors.length) {
       return this.mu;
@@ -99,6 +106,7 @@ export class BiasedMatrixFactorization {
   }
 }
 
+// Βοηθητική συνάρτηση για τυχαία vector
 function randomVector(size: number, random: () => number): Float64Array {
   const v = new Float64Array(size);
   for (let i = 0; i < size; i++) {
@@ -107,6 +115,7 @@ function randomVector(size: number, random: () => number): Float64Array {
   return v;
 }
 
+// Απλή τυχαία γεννήτρια
 function mulberry32(seed: number): () => number {
   return () => {
     seed |= 0;

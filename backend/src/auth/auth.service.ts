@@ -17,16 +17,20 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
+  // Εγγραφή νέου χρήστη
   async register(registerDto: RegisterDto) {
+    // Έλεγχος ότι τα passwords ταιριάζουν
     if (registerDto.password !== registerDto.confirmPassword) {
       throw new BadRequestException('Passwords do not match');
     }
     const { confirmPassword, password, ...rest } = registerDto;
-    void confirmPassword;
+    // Hash του password με bcrypt
     const passwordHash = await bcrypt.hash(password, 10);
+    // Δημιουργία χρήστη με προεπιλεγμένους ρόλους
     return this.usersService.create({ ...rest, passwordHash });
   }
 
+  // Επικύρωση των credentials
   async validateUser(username: string, password: string) {
     const user = await this.usersService.findInternalByUsername(username);
     if (!user) {
@@ -36,6 +40,7 @@ export class AuthService {
     if (!passwordMatches) {
       throw new UnauthorizedException('Invalid credentials');
     }
+    // Ο χρήστης πρέπει να έχει εγκριθεί από admin
     if (user.status !== 'APPROVED') {
       throw new UnauthorizedException(
         'Your registration is pending administrator approval',
@@ -44,6 +49,7 @@ export class AuthService {
     return user;
   }
 
+  // Login: δημιουργία JWT
   async login(username: string, password: string) {
     const user = await this.validateUser(username, password);
     const payload: JwtPayload = {
@@ -56,6 +62,7 @@ export class AuthService {
     };
   }
 
+  // Αλλαγή κατάστασης εγγραφής (APPROVED, REJECTED, PENDING)
   async setApprovalStatus(userId: number, status: UserStatus) {
     return this.usersService.setStatus(userId, status);
   }

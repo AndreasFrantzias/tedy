@@ -16,6 +16,7 @@ import { PublicUserDto } from './dto/public-user.dto.js';
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
+  // Δημιουργία νέου χρήστη
   async create(createUserDto: CreateUserDto): Promise<PublicUserDto> {
     try {
       const user = await this.prisma.user.create({
@@ -31,6 +32,7 @@ export class UsersService {
     }
   }
 
+  // Λήψη όλων των ενεργών χρηστών
   async findAll(): Promise<PublicUserDto[]> {
     const users = await this.prisma.user.findMany({
       where: { active: true },
@@ -39,6 +41,7 @@ export class UsersService {
     return users.map((user) => this.toPublicUser(user, true));
   }
 
+  // Λήψη χρηστών με συγκεκριμένη κατάσταση
   async findByStatus(status: UserStatus): Promise<PublicUserDto[]> {
     const users = await this.prisma.user.findMany({
       where: { active: true, status },
@@ -47,6 +50,7 @@ export class UsersService {
     return users.map((user) => this.toPublicUser(user, true));
   }
 
+  // Λήψη συγκεκριμένου χρήστη
   async findOne(id: number): Promise<PublicUserDto> {
     const user = await this.prisma.user.findFirst({
       where: { id, active: true },
@@ -57,6 +61,7 @@ export class UsersService {
     return this.toPublicUser(user, true);
   }
 
+  // Αλλαγή κατάστασης χρήστη
   async setStatus(id: number, status: UserStatus): Promise<PublicUserDto> {
     try {
       const user = await this.prisma.user.update({
@@ -69,6 +74,7 @@ export class UsersService {
     }
   }
 
+  // Απενεργοποίηση χρήστη
   async remove(id: number): Promise<PublicUserDto> {
     try {
       const user = await this.prisma.user.update({
@@ -81,6 +87,7 @@ export class UsersService {
     }
   }
 
+  // Λήψη του τρέχοντος χρήστη
   async findMe(id: number): Promise<PublicUserDto> {
     const user = await this.prisma.user.findFirst({
       where: { id, active: true },
@@ -91,6 +98,7 @@ export class UsersService {
     return this.toPublicUser(user, true);
   }
 
+  // Μετατροπή σε PublicUserDto
   private toPublicUser(user: DbUser, includeSensitive = false): PublicUserDto {
     const dto: PublicUserDto = {
       id: user.id,
@@ -113,12 +121,14 @@ export class UsersService {
     return dto;
   }
 
+  // Εσωτερική αναζήτηση με βάση το username
   async findInternalByUsername(username: string): Promise<DbUser | null> {
     return this.prisma.user.findFirst({
       where: { username, active: true },
     });
   }
 
+  // Διαχείριση σφαλμάτων Prisma
   private handlePrismaError(error: unknown): never {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&

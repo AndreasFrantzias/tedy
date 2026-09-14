@@ -27,6 +27,7 @@ export class LoginComponent {
     }
     this.authService.login(this.form.getRawValue()).subscribe({
       next: () => {
+        // Μεταφορά ανάλογα με ρόλο
         if (this.authService.hasRole('admin')) {
           this.router.navigate(['/admin/users']);
         } else if (this.authService.hasRole('organizer')) {

@@ -6,6 +6,7 @@ import { Public } from './auth/public.decorator';
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
+  // Η βασική σελίδα του API, επιστρέφει ένα απλό μήνυμα
   @Public()
   @Get()
   getHello(): string {

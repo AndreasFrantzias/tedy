@@ -16,10 +16,12 @@ export class AuthService {
   private readonly loginUrl = `${API_BASE_URL}/auth/login`;
   private readonly registerUrl = `${API_BASE_URL}/auth/register`;
 
+  // Χρήση localStorage αν υπάρχει
   private storage(): Storage | null {
     return typeof localStorage === 'undefined' ? null : localStorage;
   }
 
+  // Ανάγνωση του τρέχοντος state
   private readState(): AuthState {
     const token = this.accessToken();
     if (!token) {
@@ -60,12 +62,14 @@ export class AuthService {
     }
   }
 
+  // Subject για παρακολούθηση αλλαγών state
   private readonly stateSubject = new BehaviorSubject<AuthState>(this.readState());
 
   readonly state$ = this.stateSubject.asObservable();
 
   constructor(private http: HttpClient) {}
 
+  // Login: αποθήκευση token
   login(dto: LoginDto): Observable<void> {
     return this.http.post<LoginResponseDto>(this.loginUrl, dto).pipe(
       tap((response) => {
@@ -76,26 +80,33 @@ export class AuthService {
     );
   }
 
+  // Register: απλώς στέλνει POST
   register(dto: RegisterDto): Observable<void> {
     return this.http.post(this.registerUrl, dto).pipe(map(() => void 0));
   }
 
+  // Logout: διαγραφή token
   logout(): void {
     this.storage()?.removeItem(this.tokenKey);
     this.stateSubject.next(this.readState());
   }
 
+  // Παίρνει το token
   accessToken(): string | null {
     return this.storage()?.getItem(this.tokenKey) ?? null;
   }
 
+  // Έλεγχος login
   isLoggedIn(): boolean {
     return this.stateSubject.value.authenticated;
   }
+
+  // Έλεγχος ρόλου
   hasRole(role: string): boolean {
     return this.stateSubject.value.roles.includes(role);
   }
 
+  // ID του τρέχοντος χρήστη
   currentUserId(): number | null {
     return this.stateSubject.value.userId;
   }

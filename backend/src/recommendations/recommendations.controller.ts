@@ -13,6 +13,7 @@ export class RecommendationsController {
     private readonly recommendationsService: RecommendationsService,
   ) {}
 
+  // Επιστροφή προτάσεων για τον χρήστη
   @Get()
   recommend(
     @Req() req: AuthedRequest,

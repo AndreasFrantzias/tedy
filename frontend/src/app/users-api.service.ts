@@ -5,7 +5,6 @@ import { API_BASE_URL } from './api.config';
 import { PublicUserDto } from './model/public-user.dto';
 
 @Injectable({ providedIn: 'root' })
-
 export class UsersApiService {
   private readonly baseUrl = `${API_BASE_URL}/users`;
 
