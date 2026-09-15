@@ -9,6 +9,7 @@ import { JwtClaims } from './jwt-claims';
 import { RegisterDto } from './register.dto';
 
 @Injectable({
+  //singleton service (one instance for entire application)
   providedIn: 'root',
 })
 export class AuthService {
@@ -22,8 +23,10 @@ export class AuthService {
   }
 
   // Ανάγνωση του τρέχοντος state
+  //read authentication state from local storage and return it as an AuthState object
   private readState(): AuthState {
     const token = this.accessToken();
+    //no token found, return unauthenticated state
     if (!token) {
       return {
         authenticated: false,
@@ -33,6 +36,7 @@ export class AuthService {
       };
     }
     try {
+      //decode the token and extract data
       const payload = token.split('.')[1];
       const claims = JSON.parse(atob(payload)) as JwtClaims;
       const expired = claims.exp * 1000 <= Date.now();
@@ -63,6 +67,7 @@ export class AuthService {
   }
 
   // Subject για παρακολούθηση αλλαγών state
+  //BehaviorSubject holds authentication state and allows subscribers to be notified of changes
   private readonly stateSubject = new BehaviorSubject<AuthState>(this.readState());
 
   readonly state$ = this.stateSubject.asObservable();
@@ -70,10 +75,13 @@ export class AuthService {
   constructor(private http: HttpClient) {}
 
   // Login: αποθήκευση token
+  //login send POST request to login endpoint with user info
   login(dto: LoginDto): Observable<void> {
     return this.http.post<LoginResponseDto>(this.loginUrl, dto).pipe(
       tap((response) => {
+        //store access token to local storage a
         this.storage()?.setItem(this.tokenKey, response.access_token);
+        //update authentication state 
         this.stateSubject.next(this.readState());
       }),
       map(() => void 0),
