@@ -151,6 +151,27 @@ npx prisma migrate dev --name init
 npm run prisma:seed
 ```
 
+### HTTPS certificates (required)
+
+All traffic runs over SSL/TLS. Both the backend and the frontend read a self-signed certificate from `backend/certs/`. The files are not committed to git, so create them once after cloning:
+
+```bash
+# From the project root (Git Bash / Linux / macOS)
+openssl req -x509 -newkey rsa:2048 -keyout backend/certs/key.pem -out backend/certs/cert.pem \
+  -days 365 -nodes -subj "/CN=localhost"
+```
+
+On Windows PowerShell, use the OpenSSL that ships with Git:
+
+```powershell
+& "C:\Program Files\Git\mingw64\bin\openssl.exe" req -x509 -newkey rsa:2048 -keyout backend/certs/key.pem -out backend/certs/cert.pem -days 365 -nodes -subj "/CN=localhost"
+```
+
+`run-all.sh` creates these files automatically if they are missing.
+
+- Without the certificates, the backend falls back to plain HTTP and the frontend cannot reach it.
+- The frontend (`ng serve`) does not start without them.
+
 ---
 
 ## Environment Variables
@@ -289,17 +310,30 @@ The schema is defined in `prisma/schema.prisma`. Below is a concise overview of 
 
 ## Running the Application
 
-```bash
-# Development mode (auto‑reload)
-npm run start:dev
+Make sure the [HTTPS certificates](#https-certificates-required) exist, then start both parts in separate terminals:
 
-# Production build
-npm run build
-node dist/main
+```bash
+# Terminal 1 – backend
+cd backend
+npm run start:dev        # development mode (auto‑reload)
+# or: npm run build && node dist/main
+
+# Terminal 2 – frontend (HTTPS is configured in angular.json)
+cd frontend
+npm start
 ```
 
-The server will start on the port defined in `.env` (default `3000`).  
-API base URL: `http://localhost:3000/api` (adjust if you add a prefix).
+| Part | URL |
+|------|-----|
+| Frontend (open this) | `https://localhost:4200` |
+| Backend API | `https://localhost:3000` (port from `.env`) |
+
+**First run in the browser:** the certificate is self-signed, so the browser shows a security warning.
+
+1. Open `https://localhost:3000` and accept the warning (Advanced → Proceed). Otherwise the browser silently blocks the frontend's API calls.
+2. Open `https://localhost:4200` and accept the warning there too.
+
+Always type `https://`. The plain `http://` addresses return `ERR_EMPTY_RESPONSE`.
 
 ---
 

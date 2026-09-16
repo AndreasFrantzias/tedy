@@ -36,6 +36,7 @@ const routes: Routes = [
   },
   { path: 'forbidden', component: ForbiddenComponent },
   { path: 'admin/users', component: UsersComponent, ...requireRole('admin') },
+  { path: 'admin/users/:id', component: UserDetailsComponent, ...requireRole('admin') },
   { path: 'events', component: EventsBrowseComponent },
   { path: 'events/:id', component: EventDetailComponent },
   { path: 'my-events', component: EventManageComponent, ...requireRole('organizer') },
