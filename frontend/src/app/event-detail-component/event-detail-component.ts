@@ -91,6 +91,11 @@ export class EventDetailComponent implements OnInit {
       });
   }
 
+  selectedTotal(): number {
+    const ticket = this.event?.ticketTypes.find((t) => t.id === this.selectedTicketTypeId);
+    return ticket ? Number(ticket.price) * this.numberOfTickets : 0;
+  }
+
   selectedTicketName(): string {
     return this.event?.ticketTypes.find((ticket) => ticket.id === this.selectedTicketTypeId)?.name ?? 'ticket';
   }

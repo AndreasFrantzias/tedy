@@ -2,16 +2,12 @@
   <aside class="glass-card admin-sidebar p-3">
     <h2 class="h5 mb-3">NeonEvent Admin</h2>
     <a class="admin-link active"><span class="material-symbols-outlined">group</span>User Management</a>
-    <a class="admin-link"><span class="material-symbols-outlined">event</span>Events</a>
-    <a class="admin-link"><span class="material-symbols-outlined">confirmation_number</span>Ticketing</a>
-    <a class="admin-link"><span class="material-symbols-outlined">payments</span>Revenue</a>
     <button class="btn-amber-neon w-100 mt-3" type="button" (click)="activeTab = 'export'"><span class="material-symbols-outlined align-middle">download</span> Export Data</button>
   </aside>
 
   <section>
     <div class="mb-4">
-      <span class="pill pill-amber mb-3">Admin Console</span>
-      <h1 class="text-gradient">System Oversight</h1>
+      <h1 class="text-gradient">Admin Console</h1>
       <p class="muted">Manage roles, approve registration requests, and export platform event data.</p>
     </div>
 
@@ -74,11 +70,10 @@
           <h2>Data Export Utility</h2>
           <p class="muted">Export system-wide event data in machine-readable formats for deep analytics and legacy system integration.</p>
           <div class="two-col">
-            <div class="metric-card export-card p-4"><div><span class="pill pill-amber mb-3">code</span><h2>Export to XML</h2><p class="muted">Schema version 2.4.0</p></div><a class="btn-amber-neon" [href]="exportXmlUrl" target="_blank">.XML</a></div>
+            <div class="metric-card export-card p-4"><div><span class="pill pill-amber mb-3">code</span><h2>Export to XML</h2><p class="muted">Events in the assignment's DTD format</p></div><a class="btn-amber-neon" [href]="exportXmlUrl" target="_blank">.XML</a></div>
             <div class="metric-card export-card p-4"><div><span class="pill pill-green mb-3">data_object</span><h2>Export to JSON</h2><p class="muted">Serialized objects</p></div><a class="btn-success-neon" [href]="exportJsonUrl" target="_blank">.JSON</a></div>
           </div>
         </div>
-        <div class="architecture-note">AdminGuard checks for role === ADMIN in JWT payload before component mount. ExportUtility uses stream-based handlers and typed API services.</div>
       </ng-container>
     </div>
   </section>

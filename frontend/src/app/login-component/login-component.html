@@ -1,12 +1,11 @@
 <div>
-  <span class="pill pill-purple mb-3">Attendee access</span>
   <h2 class="mb-2">Welcome Back</h2>
   <p class="muted mb-4">Login to book tickets, manage events, or approve new users.</p>
 
   <form [formGroup]="form" (ngSubmit)="submit()" class="d-grid gap-3">
     <div>
       <label class="form-label">Username</label>
-      <input class="form-control" formControlName="username" autocomplete="username" placeholder="matbonis" />
+      <input class="form-control" formControlName="username" autocomplete="username" placeholder="username" />
     </div>
     <div>
       <label class="form-label">Password</label>

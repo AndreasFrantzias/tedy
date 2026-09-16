@@ -10,7 +10,7 @@
 <section class="split-pane">
   <aside class="glass-card p-3">
     <button class="btn-ghost w-100 mb-2" type="button" (click)="activeTab = 'inbox'" [class.btn-neon]="activeTab === 'inbox'">Inbox</button>
-    <button class="btn-ghost w-100" type="button" (click)="activeTab = 'sent'" [class.btn-neon]="activeTab === 'sent'">Outbox</button>
+    <button class="btn-ghost w-100" type="button" (click)="activeTab = 'sent'" [class.btn-neon]="activeTab === 'sent'">Sent</button>
   </aside>
 
   <div class="glass-card p-4">
@@ -28,7 +28,7 @@
     </ng-container>
 
     <ng-container *ngIf="activeTab === 'sent'">
-      <h2 class="h4 mb-3">Outbox</h2>
+      <h2 class="h4 mb-3">Sent</h2>
       <div class="d-grid gap-3" *ngIf="sent$ | async as sent">
         <article class="metric-card p-3" *ngFor="let message of sent">
           <div class="d-flex justify-content-between gap-2"><strong>{{ message.subject }}</strong><span class="pill">{{ message.sentAt | date:'short' }}</span></div>

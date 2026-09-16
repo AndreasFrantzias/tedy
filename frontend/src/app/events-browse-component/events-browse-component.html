@@ -15,7 +15,7 @@
       </div>
       <div>
         <label class="form-label">Location</label>
-        <input class="form-control" name="city" [(ngModel)]="filters.city" placeholder="City or zip" />
+        <input class="form-control" name="city" [(ngModel)]="filters.city" placeholder="City" />
       </div>
       <div class="row g-2">
         <div class="col-6"><label class="form-label">From</label><input class="form-control" type="date" name="dateFrom" [(ngModel)]="filters.dateFrom" /></div>
@@ -35,15 +35,13 @@
       <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
         <div>
           <h1 class="text-gradient mb-1">Discover Events</h1>
-          <p class="muted mb-0">Showing {{ results.total }} upcoming events near you</p>
+          <p class="muted mb-0">{{ results.total }} events found</p>
         </div>
-        <span class="pill">Sort by: Relevance</span>
       </div>
 
       <div class="grid-cards mb-4" *ngIf="results.items.length; else emptyState">
         <article class="event-card" *ngFor="let event of results.items">
           <div class="image-shell">
-            <span class="floating-badge">Tickets Available</span>
             <div class="event-cover"></div>
           </div>
           <div class="p-3 p-lg-4 d-flex flex-column h-100">
