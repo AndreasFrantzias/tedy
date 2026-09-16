@@ -16,6 +16,11 @@ import {EventDetailComponent} from './event-detail-component/event-detail-compon
 import {MessagesComponent} from './messages-component/messages-component';
 import {MyBookingsComponent} from './my-bookings-component/my-bookings-component';
 
+const requireRole = (role: string) => ({
+  canActivate: [AuthGuard, RoleGuard],
+  data: { roles: [role] },
+});
+
 const routes: Routes = [
   { path: '', redirectTo: '/home', pathMatch: 'full' },
   { path: 'home', component: HomeComponent },
@@ -30,40 +35,13 @@ const routes: Routes = [
     ],
   },
   { path: 'forbidden', component: ForbiddenComponent },
-  {
-    path: 'admin/users',
-    component: UsersComponent,
-    canActivate: [AuthGuard, RoleGuard],
-    data: {
-      roles: ['admin']
-    }
-  },
+  { path: 'admin/users', component: UsersComponent, ...requireRole('admin') },
   { path: 'events', component: EventsBrowseComponent },
   { path: 'events/:id', component: EventDetailComponent },
-  {
-    path: 'my-events',
-    component: EventManageComponent,
-    canActivate: [AuthGuard, RoleGuard],
-    data: { roles: ['organizer'] },
-  },
-  {
-    path: 'my-events/new',
-    component: EventFormComponent,
-    canActivate: [AuthGuard, RoleGuard],
-    data: { roles: ['organizer'] },
-  },
-  {
-    path: 'my-events/:id/edit',
-    component: EventFormComponent,
-    canActivate: [AuthGuard, RoleGuard],
-    data: { roles: ['organizer'] },
-  },
-  {
-    path: 'my-bookings',
-    component: MyBookingsComponent,
-    canActivate: [AuthGuard, RoleGuard],
-    data: { roles: ['attendee'] },
-  },
+  { path: 'my-events', component: EventManageComponent, ...requireRole('organizer') },
+  { path: 'my-events/new', component: EventFormComponent, ...requireRole('organizer') },
+  { path: 'my-events/:id/edit', component: EventFormComponent, ...requireRole('organizer') },
+  { path: 'my-bookings', component: MyBookingsComponent, ...requireRole('attendee') },
   {
     path: 'messages',
     component: MessagesComponent,

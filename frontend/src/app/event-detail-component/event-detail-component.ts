@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import * as L from 'leaflet';
 import { addOsmTiles } from '../leaflet-setup';
@@ -13,7 +13,7 @@ import { EventDto } from '../model/event.dto';
   templateUrl: './event-detail-component.html',
   styleUrl: './event-detail-component.css',
 })
-export class EventDetailComponent implements OnInit, AfterViewInit {
+export class EventDetailComponent implements OnInit {
   @ViewChild('mapContainer') mapContainer?: ElementRef<HTMLDivElement>;
 
   event: EventDto | null = null;
@@ -38,10 +38,6 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
     this.isAuthenticated = this.authService.isLoggedIn();
     this.eventDbId = Number(this.route.snapshot.paramMap.get('id'));
     this.loadEvent();
-  }
-
-  ngAfterViewInit(): void {
-    // The map waits until the event details and coordinates have loaded.
   }
 
   private loadEvent(): void {
