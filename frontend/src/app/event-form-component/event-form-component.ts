@@ -4,13 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { EventsApiService } from '../events-api.service';
 import { CreateEventInput } from '../model/event.dto';
 import * as L from 'leaflet';
-
-delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
+import { addOsmTiles } from '../leaflet-setup';
 
 @Component({
   selector: 'app-event-form-component',
@@ -128,9 +122,7 @@ export class EventFormComponent implements OnInit, AfterViewInit, OnDestroy {
     const lat = Number(this.form.controls.lat.value ?? 37.9838);
     const lng = Number(this.form.controls.lng.value ?? 23.7275);
     this.map = L.map(this.eventMapPicker.nativeElement).setView([lat, lng], 12);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
-    }).addTo(this.map);
+    addOsmTiles(this.map);
     this.marker = L.marker([lat, lng], { draggable: true }).addTo(this.map);
     this.marker.on('dragend', () => {
       const position = this.marker!.getLatLng();

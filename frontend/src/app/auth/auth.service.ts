@@ -8,6 +8,8 @@ import { LoginResponseDto } from './login-response.dto';
 import { JwtClaims } from './jwt-claims';
 import { RegisterDto } from './register.dto';
 
+const LOGGED_OUT: AuthState = { authenticated: false, userId: null, username: null, roles: [] };
+
 @Injectable({
   //singleton service (one instance for entire application)
   providedIn: 'root',
@@ -28,12 +30,7 @@ export class AuthService {
     const token = this.accessToken();
     //no token found, return unauthenticated state
     if (!token) {
-      return {
-        authenticated: false,
-        userId: null,
-        username: null,
-        roles: [],
-      };
+      return LOGGED_OUT;
     }
     try {
       //decode the token and extract data
@@ -42,12 +39,7 @@ export class AuthService {
       const expired = claims.exp * 1000 <= Date.now();
       if (expired) {
         this.storage()?.removeItem(this.tokenKey);
-        return {
-          authenticated: false,
-          userId: null,
-          username: null,
-          roles: [],
-        };
+        return LOGGED_OUT;
       }
       return {
         authenticated: true,
@@ -57,12 +49,7 @@ export class AuthService {
       };
     } catch {
       this.storage()?.removeItem(this.tokenKey);
-      return {
-        authenticated: false,
-        userId: null,
-        username: null,
-        roles: [],
-      };
+      return LOGGED_OUT;
     }
   }
 
