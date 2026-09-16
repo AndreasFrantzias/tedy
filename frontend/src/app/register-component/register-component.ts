@@ -86,7 +86,27 @@ export class RegisterComponent implements AfterViewInit {
     this.marker?.setLatLng([lat, lng]);
   }
 
+  private readonly stepFields: Record<number, (keyof typeof this.form.controls)[]> = {
+    1: ['username', 'password', 'confirmPassword'],
+    2: ['firstName', 'lastName', 'email', 'phone', 'afm'],
+    3: ['address', 'city', 'country', 'lat', 'lng'],
+  };
+
+  isStepValid(step: number): boolean {
+    const fieldsValid = this.stepFields[step].every((name) => this.form.controls[name].valid);
+    return step === 1 ? fieldsValid && !this.form.hasError('passwordMismatch') : fieldsValid;
+  }
+
+  isInvalid(name: keyof typeof this.form.controls): boolean {
+    const control = this.form.controls[name];
+    return control.invalid && (control.touched || control.dirty);
+  }
+
   nextStep(): void {
+    if (!this.isStepValid(this.step)) {
+      this.stepFields[this.step].forEach((name) => this.form.controls[name].markAsTouched());
+      return;
+    }
     this.step = Math.min(3, this.step + 1);
     setTimeout(() => this.map?.invalidateSize(), 0);
   }
