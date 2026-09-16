@@ -4,6 +4,7 @@ import { UsersApiService } from '../users-api.service';
 import { AuthService } from '../auth/auth.service';
 import { BehaviorSubject, Observable, of, switchMap } from 'rxjs';
 import { API_BASE_URL } from '../api.config';
+import { HttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'app-users-component',
@@ -22,8 +23,11 @@ export class UsersComponent {
 
   private readonly refresh$ = new BehaviorSubject<void>(undefined);
 
-  constructor(private usersApi: UsersApiService,
-              private authService: AuthService) {
+  constructor(
+    private usersApi: UsersApiService,
+    private authService: AuthService,
+    private http: HttpClient
+  ) {
     this.users$ = this.authService.state$.pipe(
       switchMap(state =>
         state.authenticated
@@ -71,5 +75,27 @@ export class UsersComponent {
             : true;
       return roleMatches && this.matches(user);
     });
+  }
+
+  /** Export the events XML file by downloading it as a blob */
+  exportXml(): void {
+    this.http
+      .get(this.exportXmlUrl, { responseType: 'blob' })
+      .subscribe({
+        next: (blob) => {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'events.xml';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+          this.activeTab = 'export';
+        },
+        error: (err) => {
+          console.error('Export XML failed', err);
+        },
+      });
   }
 }

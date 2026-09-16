@@ -1,11 +1,11 @@
 <div class="admin-layout app-main-wide" *ngIf="isAdmin$ | async; else notAdmin">
   <aside class="glass-card admin-sidebar p-3">
     <h2 class="h5 mb-3">NeonEvent Admin</h2>
-    <a class="admin-link active"><span class="material-symbols-outlined">group</span>User Management</a>
-    <a class="admin-link"><span class="material-symbols-outlined">event</span>Events</a>
-    <a class="admin-link"><span class="material-symbols-outlined">confirmation_number</span>Ticketing</a>
-    <a class="admin-link"><span class="material-symbols-outlined">payments</span>Revenue</a>
-    <button class="btn-amber-neon w-100 mt-3" type="button" (click)="activeTab = 'export'"><span class="material-symbols-outlined align-middle">download</span> Export Data</button>
+    <a class="admin-link active" routerLink="/admin/users"><span class="material-symbols-outlined">group</span>User Management</a>
+    <a class="admin-link" routerLink="/events"><span class="material-symbols-outlined">event</span>Events</a>
+    <a class="admin-link" routerLink="/my-events"><span class="material-symbols-outlined">confirmation_number</span>Ticketing</a>
+    <a class="admin-link" routerLink="/admin/revenue"><span class="material-symbols-outlined">payments</span>Revenue</a>
+    <button class="btn-amber-neon w-100 mt-3" type="button" (click)="exportXml()"><span class="material-symbols-outlined align-middle">download</span> Export Data</button>
   </aside>
 
   <section>
