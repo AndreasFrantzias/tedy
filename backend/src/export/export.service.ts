@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { escapeXml } from '../common/xml';
 
 @Injectable()
 export class ExportService {
@@ -22,16 +23,6 @@ export class ExportService {
       },
       orderBy: { id: 'asc' },
     });
-  }
-
-  // Escape για XML
-  private escapeXml(value: string): string {
-    return value
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&apos;');
   }
 
   // Μετατροπή σε JSON
@@ -81,7 +72,7 @@ export class ExportService {
   // Μετατροπή σε XML
   async toXml(): Promise<string> {
     const events = await this.loadEvents();
-    const esc = (v: string) => this.escapeXml(v);
+    const esc = (v: string) => escapeXml(v);
 
     const eventsXml = events
       .map((e) => {

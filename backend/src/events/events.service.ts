@@ -9,6 +9,7 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { SearchEventsDto } from './dto/search-events.dto';
 import { Prisma } from '../generated/prisma/client.js';
+import { escapeXml } from '../common/xml';
 
 const EVENT_INCLUDE = {
   categories: true,
@@ -124,20 +125,6 @@ export class EventsService {
       });
     });
 
-    return event;
-  }
-
-  private async findOwned(id: number, organizerId: number) {
-    const event = await this.prisma.event.findUnique({
-      where: { id },
-      include: { ticketTypes: true, _count: { select: { bookings: true } } },
-    });
-    if (!event) {
-      throw new NotFoundException('Event not found');
-    }
-    if (event.organizerId !== organizerId) {
-      throw new ForbiddenException('You do not own this event');
-    }
     return event;
   }
 
@@ -425,18 +412,9 @@ export class EventsService {
     };
   }
 
-  private escapeXml(value: string): string {
-    return value
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&apos;');
-  }
-
   async exportOneXml(id: number, viewerId?: number, roles: string[] = []) {
     const event = await this.exportOneJson(id, viewerId, roles);
-    const esc = (value: string) => this.escapeXml(value);
+    const esc = (value: string) => escapeXml(value);
     const categories = event.Category.map(
       (category) => `    <Category>${esc(category)}</Category>`,
     ).join('\n');
