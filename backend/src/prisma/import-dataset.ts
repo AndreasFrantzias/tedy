@@ -72,6 +72,19 @@ function splitCsvLine(line: string): string[] {
   return line.split(',');
 }
 
+/** Yields each data row (as split columns) from a CSV file, skipping the header line. */
+async function* readCsvRows(filePath: string): AsyncGenerator<string[]> {
+  const rl = readline.createInterface({ input: fs.createReadStream(filePath) });
+  let isHeader = true;
+  for await (const line of rl) {
+    if (isHeader) {
+      isHeader = false;
+      continue;
+    }
+    yield splitCsvLine(line);
+  }
+}
+
 interface RawEventRow {
   eventId: string;
   organizerUserId: string;
@@ -87,16 +100,7 @@ async function collectInteractionEventIds(): Promise<Set<string>> {
   const ids = new Set<string>();
 
   const attendeesPath = path.join(DATASET_DIR, 'event_attendees.csv');
-  let rl = readline.createInterface({
-    input: fs.createReadStream(attendeesPath),
-  });
-  let isHeader = true;
-  for await (const line of rl) {
-    if (isHeader) {
-      isHeader = false;
-      continue;
-    }
-    const cols = splitCsvLine(line);
+  for await (const cols of readCsvRows(attendeesPath)) {
     const [, eventId, status] = cols;
     if (status === 'yes' && eventId) {
       ids.add(eventId);
@@ -104,14 +108,8 @@ async function collectInteractionEventIds(): Promise<Set<string>> {
   }
 
   const interestPath = path.join(DATASET_DIR, 'event_interest.csv');
-  rl = readline.createInterface({ input: fs.createReadStream(interestPath) });
-  isHeader = true;
-  for await (const line of rl) {
-    if (isHeader) {
-      isHeader = false;
-      continue;
-    }
-    const [, eventId] = splitCsvLine(line);
+  for await (const cols of readCsvRows(interestPath)) {
+    const [, eventId] = cols;
     if (eventId) {
       ids.add(eventId);
     }
@@ -124,17 +122,11 @@ async function selectEventRows(
   interactionIds: Set<string>,
 ): Promise<RawEventRow[]> {
   const filePath = path.join(DATASET_DIR, 'events.csv');
-  const rl = readline.createInterface({ input: fs.createReadStream(filePath) });
 
   const priorityRows: RawEventRow[] = [];
   const fillerRows: RawEventRow[] = [];
-  let isHeader = true;
 
-  for await (const line of rl) {
-    if (isHeader) {
-      isHeader = false;
-      continue;
-    }
+  for await (const cols of readCsvRows(filePath)) {
     if (
       priorityRows.length >= interactionIds.size &&
       fillerRows.length >= MAX_EVENTS
@@ -142,7 +134,6 @@ async function selectEventRows(
       break;
     }
 
-    const cols = splitCsvLine(line);
     const [eventId, organizerUserId, startTime, city, , , country, lat, lng] =
       cols;
     if (!eventId || !lat || !lng) {
@@ -262,17 +253,9 @@ async function importBookings(
   events: Map<string, ImportedEvent>,
 ): Promise<void> {
   const filePath = path.join(DATASET_DIR, 'event_attendees.csv');
-  const rl = readline.createInterface({ input: fs.createReadStream(filePath) });
-
-  let isHeader = true;
   let bookingCount = 0;
 
-  for await (const line of rl) {
-    if (isHeader) {
-      isHeader = false;
-      continue;
-    }
-    const cols = splitCsvLine(line);
+  for await (const cols of readCsvRows(filePath)) {
     const [, eventId, status, userId] = cols;
     if (status !== 'yes' || !userId) {
       continue;
@@ -319,17 +302,9 @@ async function importBookings(
 
 async function importViews(events: Map<string, ImportedEvent>): Promise<void> {
   const filePath = path.join(DATASET_DIR, 'event_interest.csv');
-  const rl = readline.createInterface({ input: fs.createReadStream(filePath) });
-
-  let isHeader = true;
   let viewCount = 0;
 
-  for await (const line of rl) {
-    if (isHeader) {
-      isHeader = false;
-      continue;
-    }
-    const cols = splitCsvLine(line);
+  for await (const cols of readCsvRows(filePath)) {
     const [userId, eventId, , timestamp] = cols;
     const imported = events.get(eventId);
     if (!imported || !userId) {
