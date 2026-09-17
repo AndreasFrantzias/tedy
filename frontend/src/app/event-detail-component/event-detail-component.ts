@@ -1,18 +1,11 @@
-import { AfterViewInit, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import * as L from 'leaflet';
+import { addOsmTiles } from '../leaflet-setup';
 import { EventsApiService } from '../events-api.service';
 import { BookingsApiService } from '../bookings-api.service';
 import { AuthService } from '../auth/auth.service';
 import { EventDto } from '../model/event.dto';
-
-// Leaflet needs explicit marker image URLs when bundled by Angular.
-delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
 
 @Component({
   selector: 'app-event-detail-component',
@@ -20,7 +13,7 @@ L.Icon.Default.mergeOptions({
   templateUrl: './event-detail-component.html',
   styleUrl: './event-detail-component.css',
 })
-export class EventDetailComponent implements OnInit, AfterViewInit {
+export class EventDetailComponent implements OnInit {
   @ViewChild('mapContainer') mapContainer?: ElementRef<HTMLDivElement>;
 
   event: EventDto | null = null;
@@ -47,10 +40,6 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
     this.loadEvent();
   }
 
-  ngAfterViewInit(): void {
-    // The map waits until the event details and coordinates have loaded.
-  }
-
   private loadEvent(): void {
     this.eventsApi.findOne(this.eventDbId).subscribe((event) => {
       this.event = event;
@@ -67,9 +56,7 @@ export class EventDetailComponent implements OnInit, AfterViewInit {
       this.map.remove();
     }
     this.map = L.map(this.mapContainer.nativeElement).setView([this.event.lat, this.event.lng], 14);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
-    }).addTo(this.map);
+    addOsmTiles(this.map);
     L.marker([this.event.lat, this.event.lng]).addTo(this.map).bindPopup(this.event.venue);
   }
 

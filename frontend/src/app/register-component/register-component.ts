@@ -3,13 +3,7 @@ import { AbstractControl, FormBuilder, ValidationErrors, Validators } from '@ang
 import { HttpErrorResponse } from '@angular/common/http';
 import { AuthService } from '../auth/auth.service';
 import * as L from 'leaflet';
-
-delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
+import { addOsmTiles } from '../leaflet-setup';
 
 function passwordsMatchValidator(control: AbstractControl): ValidationErrors | null {
   const password = control.get('password')?.value;
@@ -68,9 +62,7 @@ export class RegisterComponent implements AfterViewInit {
     const lat = Number(this.form.controls.lat.value);
     const lng = Number(this.form.controls.lng.value);
     this.map = L.map(this.mapPicker.nativeElement).setView([lat, lng], 12);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
-    }).addTo(this.map);
+    addOsmTiles(this.map);
     this.marker = L.marker([lat, lng], { draggable: true }).addTo(this.map);
     this.marker.on('dragend', () => {
       const position = this.marker!.getLatLng();
