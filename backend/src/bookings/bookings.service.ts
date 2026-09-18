@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { Prisma } from '../generated/prisma/client.js';
 
+//DB-level locks  
 @Injectable()
 export class BookingsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -18,10 +19,13 @@ export class BookingsService {
     }
 
     try {
+      //transcation ensures atomicity(all succed or nothing)
       return await this.prisma.$transaction(
         async (tx) => {
+          //lock event row to prevent concurrent bookings that exceed capacity
           await tx.$queryRaw`SELECT id FROM "Event" WHERE id = ${dto.eventId} FOR UPDATE`;
 
+          //load event and check if it exists and is published
           const event = await tx.event.findUnique({
             where: { id: dto.eventId },
           });
@@ -32,6 +36,7 @@ export class BookingsService {
             throw new BadRequestException('Event is not open for bookings');
           }
 
+          //check if ticket type  exists for the event
           const ticketType = await tx.ticketType.findFirst({
             where: { id: dto.ticketTypeId, eventId: dto.eventId },
           });
@@ -39,6 +44,7 @@ export class BookingsService {
             throw new NotFoundException('Ticket type not found for this event');
           }
 
+          //check capacity and available tickets
           const booked = await tx.booking.aggregate({
             where: { eventId: dto.eventId, status: { not: 'CANCELLED' } },
             _sum: { numberOfTickets: true },
@@ -50,20 +56,25 @@ export class BookingsService {
             );
           }
 
+          //decrement available tickets for  ticket type
           const decremented = await tx.ticketType.updateMany({
             where: {
               id: dto.ticketTypeId,
               eventId: dto.eventId,
+              //available >= numberoftickets
               available: { gte: dto.numberOfTickets },
             },
+            //decrement available tickets
             data: { available: { decrement: dto.numberOfTickets } },
           });
+          //no updates,means not enough available tickets for this ticket type
           if (decremented.count === 0) {
             throw new BadRequestException(
               'Not enough available tickets for this ticket type',
             );
           }
 
+          //create booking 
           const booking = await tx.booking.create({
             data: {
               bookingId: 'PENDING',
@@ -76,6 +87,7 @@ export class BookingsService {
             },
           });
 
+          //update bookingId to a unique value after creation
           return tx.booking.update({
             where: { id: booking.id },
             data: { bookingId: `B${booking.id}` },
@@ -85,6 +97,7 @@ export class BookingsService {
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
       );
     } catch (error) {
+      //handle specific Prisma error
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2034'
@@ -97,6 +110,7 @@ export class BookingsService {
     }
   }
 
+  //retrieve all bookings for a specific attendee
   async findMine(attendeeId: number) {
     return this.prisma.booking.findMany({
       where: { attendeeId },
