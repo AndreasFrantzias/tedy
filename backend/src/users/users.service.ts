@@ -89,13 +89,7 @@ export class UsersService {
 
   // Λήψη του τρέχοντος χρήστη
   async findMe(id: number): Promise<PublicUserDto> {
-    const user = await this.prisma.user.findFirst({
-      where: { id, active: true },
-    });
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-    return this.toPublicUser(user, true);
+    return this.findOne(id);
   }
 
   // Μετατροπή σε PublicUserDto
