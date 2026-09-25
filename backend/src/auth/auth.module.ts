@@ -5,10 +5,13 @@ import { UsersModule } from '../users/users.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
+
+//get JWT secret from environment 
 const jwtSecret = process.env.JWT_SECRET;
 if (!jwtSecret) {
   throw new Error('JWT_SECRET is not defined');
 }
+
 @Module({
   imports: [
     UsersModule,

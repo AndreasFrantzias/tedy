@@ -17,19 +17,19 @@ import {
 export class TicketTypeInputDto {
   @IsString()
   @MinLength(1)
-  ticketTypeId: string;   // Εσωτερικός κωδικός
+  ticketTypeId: string;   
 
   @IsString()
   @MinLength(1)
-  name: string;           // Όνομα
+  name: string;           
 
   @IsNumber()
   @Min(0)
-  price: number;          // Τιμή
+  price: number;          
 
   @IsInt()
   @Min(1)
-  quantity: number;       // Διαθέσιμα εισιτήρια
+  quantity: number;       
 }
 
 export class CreateEventDto {
@@ -77,7 +77,8 @@ export class CreateEventDto {
 
   @IsInt()
   @Min(1)
-  capacity: number;       // Συνολική χωρητικότητα
+  //total capacity
+  capacity: number;       
 
   @IsString()
   @MinLength(1)

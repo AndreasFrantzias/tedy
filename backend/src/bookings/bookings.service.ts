@@ -8,7 +8,6 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { Prisma } from '../generated/prisma/client.js';
 
-//DB-level locks  
 @Injectable()
 export class BookingsService {
   constructor(private readonly prisma: PrismaService) {}

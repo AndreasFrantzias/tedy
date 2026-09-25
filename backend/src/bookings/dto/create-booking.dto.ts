@@ -1,15 +1,18 @@
 import { IsInt, Min } from 'class-validator';
 
 export class CreateBookingDto {
+  //event ID
   @IsInt()
   @Min(1)
-  eventId: number;          // ID του event
+  eventId: number;          
 
+  //ticket type ID
   @IsInt()
   @Min(1)
-  ticketTypeId: number;     // ID του ticket type
+  ticketTypeId: number;     
 
+  //number of tickets
   @IsInt()
   @Min(1)
-  numberOfTickets: number;  // Πλήθος εισιτηρίων
+  numberOfTickets: number;  
 }
