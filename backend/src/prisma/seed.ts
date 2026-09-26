@@ -10,7 +10,7 @@ const adapter = new PrismaPg({
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  // The administrator is available immediately after seeding, as required by the assignment.
+  // The administrator is available immediately after seeding
   const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? 'admin123';
   const adminPasswordHash = await bcrypt.hash(adminPassword, 10);
   await prisma.user.upsert({

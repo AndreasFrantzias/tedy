@@ -15,13 +15,14 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       context.getClass(),
     ]);
     if (!isPublic) {
+      //if the route is not public, enforce JWT authentication
       return super.canActivate(context) as Promise<boolean>;
     }
     // Public pages still benefit from req.user when a visitor is already logged in.
     try {
       await super.canActivate(context);
     } catch {
-      // No token is fine here; the request continues as a guest.
+      // no token is fine here; the request continues as a guest.
     }
     return true;
   }
