@@ -82,16 +82,17 @@ export class UsersComponent {
     });
   }
 
-  /** Export the events XML file by downloading it as a blob */
-  exportXml(): void {
+  // Download via HttpClient (not a plain link) so the interceptor adds the admin token
+  exportFile(format: 'xml' | 'json'): void {
+    const fileUrl = format === 'xml' ? this.exportXmlUrl : this.exportJsonUrl;
     this.http
-      .get(this.exportXmlUrl, { responseType: 'blob' })
+      .get(fileUrl, { responseType: 'blob' })
       .subscribe({
         next: (blob) => {
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = 'events.xml';
+          a.download = `events.${format}`;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
@@ -99,7 +100,7 @@ export class UsersComponent {
           this.activeTab = 'export';
         },
         error: (err) => {
-          console.error('Export XML failed', err);
+          console.error(`Export ${format} failed`, err);
         },
       });
   }
