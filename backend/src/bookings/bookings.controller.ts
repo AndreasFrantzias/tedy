@@ -12,14 +12,14 @@ interface AuthedRequest extends Request {
 export class BookingsController {
   constructor(private readonly bookingsService: BookingsService) {}
 
-  // Δημιουργία νέας κράτησης (μόνο συμμετέχων)
+  //creation of a new booking (only for attendees)
   @Post()
   @Roles('attendee')
   create(@Req() req: AuthedRequest, @Body() dto: CreateBookingDto) {
     return this.bookingsService.create(req.user!.userId, dto);
   }
 
-  // Λήψη όλων των κρατήσεων του χρήστη
+  // Get all bookings of the user
   @Get('mine')
   @Roles('attendee')
   findMine(@Req() req: AuthedRequest) {

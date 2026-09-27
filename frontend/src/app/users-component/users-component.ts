@@ -5,6 +5,7 @@ import { AuthService } from '../auth/auth.service';
 import { BehaviorSubject, Observable, of, switchMap } from 'rxjs';
 import { API_BASE_URL } from '../api.config';
 
+// Admin console
 @Component({
   selector: 'app-users-component',
   standalone: false,
@@ -17,13 +18,15 @@ export class UsersComponent {
   isAdmin$: Observable<boolean>;
   exportXmlUrl = `${API_BASE_URL}/export/events.xml`;
   exportJsonUrl = `${API_BASE_URL}/export/events.json`;
-  query = '';
+  query = ''; 
   activeTab: 'pending' | 'all' | 'organizers' | 'attendees' | 'export' = 'pending';
 
+  // emitting reloads the pending list (after approve/reject)
   private readonly refresh$ = new BehaviorSubject<void>(undefined);
 
   constructor(private usersApi: UsersApiService,
               private authService: AuthService) {
+    // All users, loaded only when logged in
     this.users$ = this.authService.state$.pipe(
       switchMap(state =>
         state.authenticated
@@ -51,16 +54,18 @@ export class UsersComponent {
     this.usersApi.reject(id).subscribe(() => this.refresh$.next());
   }
 
+  // case-insensitive search across name, email and status; empty search matches everyone
   matches(user: PublicUserDto): boolean {
     const q = this.query.trim().toLowerCase();
     if (!q) {
       return true;
     }
     return [user.username, user.email, user.firstName, user.lastName, user.status]
-      .filter(Boolean)
+      .filter(Boolean) // skip empty/missing fields
       .some((value) => String(value).toLowerCase().includes(q));
   }
 
+  // users for the current tab, that also match the search
   visibleUsers(users: PublicUserDto[]): PublicUserDto[] {
     return users.filter((user) => {
       const roleMatches =

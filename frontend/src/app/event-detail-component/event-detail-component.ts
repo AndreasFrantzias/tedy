@@ -13,7 +13,10 @@ import { EventDto } from '../model/event.dto';
   templateUrl: './event-detail-component.html',
   styleUrl: './event-detail-component.css',
 })
+
+//component for displaying event details, including map and booking options
 export class EventDetailComponent implements OnInit {
+  //if the user is authenticated, show booking options
   @ViewChild('mapContainer') mapContainer?: ElementRef<HTMLDivElement>;
 
   event: EventDto | null = null;
@@ -34,12 +37,14 @@ export class EventDetailComponent implements OnInit {
     private authService: AuthService,
   ) {}
 
+  //initializes component, checks authentication status, and loads event details
   ngOnInit(): void {
     this.isAuthenticated = this.authService.isLoggedIn();
     this.eventDbId = Number(this.route.snapshot.paramMap.get('id'));
     this.loadEvent();
   }
 
+  // Loads the event details from the API and initializes the map
   private loadEvent(): void {
     this.eventsApi.findOne(this.eventDbId).subscribe((event) => {
       this.event = event;
@@ -48,6 +53,7 @@ export class EventDetailComponent implements OnInit {
     });
   }
 
+  //initialize leaflet map with event location and marker
   private initMap(): void {
     if (!this.event || this.event.lat === null || this.event.lng === null || !this.mapContainer) {
       return;
@@ -60,13 +66,14 @@ export class EventDetailComponent implements OnInit {
     L.marker([this.event.lat, this.event.lng]).addTo(this.map).bindPopup(this.event.venue);
   }
 
+
   book(): void {
     if (!this.event || !this.selectedTicketTypeId) {
       return;
     }
     this.showBookingModal = true;
   }
-
+  //confirms the booking by calling the bookings API and handles success or error responses
   confirmBooking(): void {
     if (!this.event || !this.selectedTicketTypeId) {
       return;
@@ -91,6 +98,7 @@ export class EventDetailComponent implements OnInit {
       });
   }
 
+  //calculate total price for selected ticket type and number of tickets
   selectedTotal(): number {
     const ticket = this.event?.ticketTypes.find((t) => t.id === this.selectedTicketTypeId);
     return ticket ? Number(ticket.price) * this.numberOfTickets : 0;

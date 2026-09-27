@@ -21,19 +21,12 @@ const requireRole = (role: string) => ({
   data: { roles: [role] },
 });
 
+//routes and their guardss(order matters)
 const routes: Routes = [
   { path: '', redirectTo: '/home', pathMatch: 'full' },
   { path: 'home', component: HomeComponent },
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
-  {
-    path: 'users',
-    component: UsersComponent,
-    canActivate: [AuthGuard],
-    children: [
-      { path: ':id', component: UserDetailsComponent }
-    ],
-  },
   { path: 'forbidden', component: ForbiddenComponent },
   { path: 'admin/users', component: UsersComponent, ...requireRole('admin') },
   { path: 'admin/users/:id', component: UserDetailsComponent, ...requireRole('admin') },

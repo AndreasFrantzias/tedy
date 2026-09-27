@@ -5,6 +5,7 @@ import {UsersApiService} from '../users-api.service';
 import {combineLatest, map, Observable, of, switchMap} from 'rxjs';
 import {AuthService} from '../auth/auth.service';
 
+//Admin page showing one user's full profile 
 @Component({
   selector: 'app-user-details-component',
   standalone: false,
@@ -19,12 +20,14 @@ export class UserDetailsComponent  {
     private usersApi: UsersApiService,
     private authService: AuthService)
   {
+    // Re-fetch wheneever the :id in the URL or the login state changes
     this.user$ = combineLatest([
       this.route.paramMap.pipe(
         map(params => Number(params.get('id')))
       ),
       this.authService.state$
     ]).pipe(
+      // only call the API when logged in; otherwise emit undefined so the template shows nothing
       switchMap(([id, state]) =>
         state.authenticated
           ? this.usersApi.findOne(id)

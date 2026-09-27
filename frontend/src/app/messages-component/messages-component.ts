@@ -3,6 +3,7 @@ import { BehaviorSubject, Observable, switchMap } from 'rxjs';
 import { MessagingApiService } from '../messaging-api.service';
 import { MessageDto } from '../model/message.dto';
 
+// Inbox / Sent tabs plus a compose modal for sending and replying
 @Component({
   selector: 'app-messages-component',
   standalone: false,
@@ -14,6 +15,7 @@ export class MessagesComponent {
   inbox$: Observable<MessageDto[]>;
   sent$: Observable<MessageDto[]>;
 
+  //compose modal inputs
   composeRecipientId: number | null = null;
   composeEventId: number | null = null;
   composeSubject = '';
@@ -21,6 +23,7 @@ export class MessagesComponent {
   composeError = '';
   showCompose = false;
 
+  //One emitt reloads both inboox and sent
   private readonly refresh$ = new BehaviorSubject<void>(undefined);
 
   constructor(private messagingApi: MessagingApiService) {
@@ -29,6 +32,7 @@ export class MessagesComponent {
   }
 
   markRead(message: MessageDto): void {
+    // already read, skip the request
     if (message.readAt) {
       return;
     }
@@ -39,6 +43,7 @@ export class MessagesComponent {
     this.messagingApi.remove(id).subscribe(() => this.refresh$.next());
   }
 
+  // Open compose pre-filled to answer the sender, keeping the same event
   reply(message: MessageDto): void {
     this.showCompose = true;
     this.composeRecipientId = message.senderId;
@@ -55,7 +60,8 @@ export class MessagesComponent {
     this.messagingApi
       .send({
         recipientId: this.composeRecipientId,
-        eventId: this.composeEventId ?? undefined,
+        // undefined leaves the field out of the request; null would be sent as-is 
+        eventId: this.composeEventId ?? undefined, 
         subject: this.composeSubject,
         body: this.composeBody,
       })

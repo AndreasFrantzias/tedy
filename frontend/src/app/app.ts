@@ -12,9 +12,7 @@ import { MessagingApiService } from './messaging-api.service';
   styleUrl: './app.css',
 })
 export class App {
-
-  title: string = 'Hello Project 1';
-
+  //used by navbar to show login/logout and unread messages
   authState$: Observable<AuthState>;
   unreadCount$: Observable<number>;
 
