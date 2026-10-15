@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 
+//not-found page for users who try to access a page that doesn't exist
 @Component({
   selector: 'app-not-found-component',
   standalone: false,

@@ -19,12 +19,11 @@ export class AuthService {
   private readonly loginUrl = `${API_BASE_URL}/auth/login`;
   private readonly registerUrl = `${API_BASE_URL}/auth/register`;
 
-  // Χρήση localStorage αν υπάρχει
+  //use localStorage if available, otherwise return null
   private storage(): Storage | null {
     return typeof localStorage === 'undefined' ? null : localStorage;
   }
 
-  // Ανάγνωση του τρέχοντος state
   //read authentication state from local storage and return it as an AuthState object
   private readState(): AuthState {
     const token = this.accessToken();
@@ -53,7 +52,6 @@ export class AuthService {
     }
   }
 
-  // Subject για παρακολούθηση αλλαγών state
   //BehaviorSubject holds authentication state and allows subscribers to be notified of changes
   private readonly stateSubject = new BehaviorSubject<AuthState>(this.readState());
 
@@ -61,12 +59,11 @@ export class AuthService {
 
   constructor(private http: HttpClient) {}
 
-  // Login: αποθήκευση token
   //login send POST request to login endpoint with user info
   login(dto: LoginDto): Observable<void> {
     return this.http.post<LoginResponseDto>(this.loginUrl, dto).pipe(
       tap((response) => {
-        //store access token to local storage a
+        //store access token to local storage 
         this.storage()?.setItem(this.tokenKey, response.access_token);
         //update authentication state 
         this.stateSubject.next(this.readState());
@@ -75,33 +72,33 @@ export class AuthService {
     );
   }
 
-  // Register: απλώς στέλνει POST
+  // Register: just sends POST
   register(dto: RegisterDto): Observable<void> {
     return this.http.post(this.registerUrl, dto).pipe(map(() => void 0));
   }
 
-  // Logout: διαγραφή token
+  // Logout: deletes token
   logout(): void {
     this.storage()?.removeItem(this.tokenKey);
     this.stateSubject.next(this.readState());
   }
 
-  // Παίρνει το token
+  // Gets the token
   accessToken(): string | null {
     return this.storage()?.getItem(this.tokenKey) ?? null;
   }
 
-  // Έλεγχος login
+  // Checks if the user is logged in
   isLoggedIn(): boolean {
     return this.stateSubject.value.authenticated;
   }
 
-  // Έλεγχος ρόλου
+  // Checks if the user has a specific role
   hasRole(role: string): boolean {
     return this.stateSubject.value.roles.includes(role);
   }
 
-  // ID του τρέχοντος χρήστη
+  // Gets the ID of the current user
   currentUserId(): number | null {
     return this.stateSubject.value.userId;
   }

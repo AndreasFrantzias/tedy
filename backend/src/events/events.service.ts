@@ -11,6 +11,7 @@ import { SearchEventsDto } from './dto/search-events.dto';
 import { Prisma } from '../generated/prisma/client.js';
 import { escapeXml } from '../common/xml';
 
+
 const EVENT_INCLUDE = {
   categories: true,
   ticketTypes: true,
@@ -20,12 +21,14 @@ const EVENT_INCLUDE = {
   },
 } as const;
 
+//type alias for prisma transaction client
 type EventTx = Prisma.TransactionClient;
 
 @Injectable()
 export class EventsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  // Helper methods for validation
   private assertCapacity(
     capacity: number,
     ticketTypes: { quantity: number }[],
@@ -38,6 +41,7 @@ export class EventsService {
     }
   }
 
+  //helper method to validate date range
   private assertDateRange(
     startDateTime: string | Date,
     endDateTime: string | Date,
@@ -55,6 +59,7 @@ export class EventsService {
     }
   }
 
+  //helper method to validate unique ticket type IDs
   private assertUniqueTicketTypeIds(ticketTypes: { ticketTypeId: string }[]) {
     const ids = ticketTypes.map((t) => t.ticketTypeId.trim());
     if (new Set(ids).size !== ids.length) {
@@ -62,6 +67,7 @@ export class EventsService {
     }
   }
 
+  //helper method to validate price range
   private assertPriceRange(dto: SearchEventsDto) {
     if (
       dto.priceMin !== undefined &&
@@ -75,13 +81,16 @@ export class EventsService {
   }
 
   async create(organizerId: number, dto: CreateEventDto) {
+    //validate input
     this.assertDateRange(dto.startDateTime, dto.endDateTime);
     this.assertUniqueTicketTypeIds(dto.ticketTypes);
     this.assertCapacity(dto.capacity, dto.ticketTypes);
 
+    //atomically entities creation and eventId generation
     const event = await this.prisma.$transaction(async (tx) => {
       const created = await tx.event.create({
         data: {
+          //placeholder value
           eventId: 'PENDING',
           title: dto.title,
           eventType: dto.eventType,
@@ -95,6 +104,7 @@ export class EventsService {
           endDateTime: new Date(dto.endDateTime),
           capacity: dto.capacity,
           description: dto.description,
+          //insert event as Draft
           status: 'DRAFT',
           organizerId,
           categories: {
@@ -118,6 +128,7 @@ export class EventsService {
         },
       });
 
+      //update eventId to be EV + id
       return tx.event.update({
         where: { id: created.id },
         data: { eventId: `EV${created.id}` },
@@ -128,6 +139,7 @@ export class EventsService {
     return event;
   }
 
+  //helper method to find an event owned by the organizer for update ( row-level locking)
   private async findOwnedForUpdate(
     tx: EventTx,
     id: number,
@@ -147,10 +159,12 @@ export class EventsService {
     return event;
   }
 
+  //update event details (only  organizer)
   async update(id: number, organizerId: number, dto: UpdateEventDto) {
     return this.prisma.$transaction(async (tx) => {
       const event = await this.findOwnedForUpdate(tx, id, organizerId);
 
+      //check data range 
       if (dto.startDateTime !== undefined || dto.endDateTime !== undefined) {
         this.assertDateRange(
           dto.startDateTime ?? event.startDateTime,
@@ -158,6 +172,7 @@ export class EventsService {
         );
       }
 
+      //check capacity 
       if (dto.capacity !== undefined) {
         const booked = await tx.booking.aggregate({
           where: { eventId: id, status: { not: 'CANCELLED' } },
@@ -172,6 +187,7 @@ export class EventsService {
         this.assertCapacity(dto.capacity, dto.ticketTypes ?? event.ticketTypes);
       }
 
+      //prepare update data
       const data: Prisma.EventUpdateInput = {};
       if (dto.title !== undefined) data.title = dto.title;
       if (dto.eventType !== undefined) data.eventType = dto.eventType;
@@ -233,6 +249,7 @@ export class EventsService {
     });
   }
 
+  //publish event (only organizer)
   async publish(id: number, organizerId: number) {
     return this.prisma.$transaction(async (tx) => {
       const event = await this.findOwnedForUpdate(tx, id, organizerId);
@@ -252,6 +269,7 @@ export class EventsService {
     });
   }
 
+  //cancel event (only organizer)
   async cancel(id: number, organizerId: number) {
     return this.prisma.$transaction(async (tx) => {
       const event = await this.findOwnedForUpdate(tx, id, organizerId);
@@ -266,6 +284,7 @@ export class EventsService {
     });
   }
 
+  //delete event (only organizer, only if no bookings)
   async remove(id: number, organizerId: number) {
     return this.prisma.$transaction(async (tx) => {
       const event = await this.findOwnedForUpdate(tx, id, organizerId);
@@ -279,6 +298,7 @@ export class EventsService {
     });
   }
 
+  //get all events of the organizer (only organizer)
   async findMine(organizerId: number) {
     return this.prisma.event.findMany({
       where: { organizerId },
@@ -296,10 +316,12 @@ export class EventsService {
     });
   }
 
+  //get all categories (public)
   async findCategories() {
     return this.prisma.category.findMany({ orderBy: { name: 'asc' } });
   }
 
+  //search events with filters (public)
   async search(dto: SearchEventsDto) {
     this.assertPriceRange(dto);
     const page = dto.page ?? 1;
@@ -358,6 +380,7 @@ export class EventsService {
     };
   }
 
+  //get event details (public, with view tracking)
   async findOnePublic(id: number, viewerId?: number, roles: string[] = []) {
     const event = await this.prisma.event.findUnique({
       where: { id },
@@ -380,6 +403,7 @@ export class EventsService {
     return event;
   }
 
+  //export event details in JSON format (public, with view tracking)
   async exportOneJson(id: number, viewerId?: number, roles: string[] = []) {
     const event = await this.findOnePublic(id, viewerId, roles);
     return {
@@ -412,6 +436,7 @@ export class EventsService {
     };
   }
 
+  //export event details in XML format (public, with view tracking)
   async exportOneXml(id: number, viewerId?: number, roles: string[] = []) {
     const event = await this.exportOneJson(id, viewerId, roles);
     const esc = (value: string) => escapeXml(value);

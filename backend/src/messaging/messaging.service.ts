@@ -14,6 +14,7 @@ export class MessagingService {
 
   async inbox(userId: number) {
     return this.prisma.message.findMany({
+      //only fetch messages that are not deleted by the recipient
       where: { recipientId: userId, deletedByRecipient: false },
       include: {
         sender: { select: { id: true, username: true } },
@@ -25,6 +26,7 @@ export class MessagingService {
 
   async sent(userId: number) {
     return this.prisma.message.findMany({
+      //only fetch messages that are not deleted by the sender
       where: { senderId: userId, deletedBySender: false },
       include: {
         recipient: { select: { id: true, username: true } },
@@ -36,18 +38,22 @@ export class MessagingService {
 
   async unreadCount(userId: number) {
     const count = await this.prisma.message.count({
+      //only fetch unread messages that are not deleted and not read by the recipient
       where: { recipientId: userId, deletedByRecipient: false, readAt: null },
     });
     return { count };
   }
 
+  //checks if two users have bookingrelationship
   private async hasBookingRelationship(
     userIdA: number,
     userIdB: number,
     eventId?: number,
   ): Promise<boolean> {
     const count = await this.prisma.booking.count({
+      //check if userIdA is the attendee and userIdB is the organizer or vice versa
       where: {
+        //ignore eventId if not provided, otherwise filter by eventId
         ...(eventId ? { eventId } : {}),
         status: 'CONFIRMED',
         OR: [
@@ -60,9 +66,11 @@ export class MessagingService {
   }
 
   async send(senderId: number, dto: SendMessageDto) {
+    // Prevent users from messaging themselves
     if (senderId === dto.recipientId) {
       throw new BadRequestException('Cannot message yourself');
     }
+    //check if recipient exists and is active and approved
     const recipient = await this.prisma.user.findFirst({
       where: { id: dto.recipientId, active: true, status: 'APPROVED' },
     });
@@ -79,6 +87,7 @@ export class MessagingService {
         'Messaging is only available between an organizer and an attendee who has booked one of their events',
       );
     }
+    //create message
     return this.prisma.message.create({
       data: {
         senderId,
@@ -90,6 +99,7 @@ export class MessagingService {
     });
   }
 
+  //Broadcast message to all attendees of an event
   async broadcast(
     organizerId: number,
     eventId: number,
@@ -104,6 +114,7 @@ export class MessagingService {
     if (event.organizerId !== organizerId) {
       throw new ForbiddenException('You do not own this event');
     }
+    //get all bookings of event that are confirmed and distinct by attendeeId
     const bookings = await this.prisma.booking.findMany({
       where: { eventId, status: 'CONFIRMED' },
       distinct: ['attendeeId'],
@@ -112,6 +123,7 @@ export class MessagingService {
     if (bookings.length === 0) {
       return { sent: 0 };
     }
+    //create messages for all attendees of the event
     await this.prisma.message.createMany({
       data: bookings.map((b) => ({
         senderId: organizerId,
@@ -132,6 +144,7 @@ export class MessagingService {
     if (message.recipientId !== userId) {
       throw new ForbiddenException('You are not the recipient of this message');
     }
+    //updarte readAt timestamp to current time
     return this.prisma.message.update({
       where: { id },
       data: { readAt: new Date() },
@@ -147,11 +160,13 @@ export class MessagingService {
       throw new ForbiddenException('You are not part of this message');
     }
 
+    //flag message as deleted by sender or recipient by how is deleting it
     const deletedBySender =
       message.senderId === userId ? true : message.deletedBySender;
     const deletedByRecipient =
       message.recipientId === userId ? true : message.deletedByRecipient;
 
+    // If both sender and recipient have deleted the message, remove it from the database
     if (deletedBySender && deletedByRecipient) {
       await this.prisma.message.delete({ where: { id } });
       return { deleted: true };

@@ -10,6 +10,7 @@ export class RecommendationsApiService {
 
   constructor(private http: HttpClient) {}
 
+  // GET /recommendations?limit=N (events suggested for the logged-in user)
   recommend(limit = 10): Observable<RecommendationDto[]> {
     return this.http.get<RecommendationDto[]>(this.baseUrl, {
       params: { limit: String(limit) },

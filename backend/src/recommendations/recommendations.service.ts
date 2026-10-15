@@ -22,6 +22,7 @@ type RecommendationEvent = {
 export class RecommendationsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  //reccomandations for the user based on their booking and view history
   async recommend(userId: number, limit = 10) {
     const [users, events, bookings, views] = await Promise.all([
       this.prisma.user.findMany({ select: { id: true } }),
@@ -70,6 +71,7 @@ export class RecommendationsService {
       ratingMap.set(key, BOOKING_WEIGHT);
     }
 
+    //convert ratingMap to interactions array for BMF
     const interactions: Interaction[] = [];
     for (const [key, rating] of ratingMap) {
       const [u, e] = key.split(':').map(Number);
@@ -81,7 +83,7 @@ export class RecommendationsService {
     }
 
     interactions.push(...this.buildNegativeSamples(ratingMap, users, events));
-
+    
     const bookedEventIds = new Set(
       bookings.filter((b) => b.attendeeId === userId).map((b) => b.eventId),
     );
@@ -104,7 +106,7 @@ export class RecommendationsService {
       );
     }
 
-    // For this coursework-sized dataset, retraining on request keeps the result current.
+    // For this small sized dataset, retraining on request keeps the result current(not for large datasets)
     const model = new BiasedMatrixFactorization({
       numFactors: 10,
       learningRate: 0.01,
@@ -127,6 +129,7 @@ export class RecommendationsService {
     return scored.map(({ event, score }) => ({ ...event, score }));
   }
 
+  // negative samples are for users who have not interacted with certain events
   private buildNegativeSamples(
     ratingMap: Map<string, number>,
     users: { id: number }[],
@@ -172,6 +175,7 @@ export class RecommendationsService {
     return samples;
   }
 
+  // if user has no history, recommend popular events based on bookings and views
   private popularityFallback(
     events: RecommendationEvent[],
     bookings: { eventId: number }[],

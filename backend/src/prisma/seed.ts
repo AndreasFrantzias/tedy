@@ -11,10 +11,6 @@ const adapter = new PrismaPg({
 
 const prisma = new PrismaClient({ adapter });
 
-/**
- * Main seed function that populates the database with users, events, bookings and views
- * from the CSV files located in the `./data/rel_event_csvs` directory.
- */
 export async function runSeed() {
   console.log('Seeding database...');
 

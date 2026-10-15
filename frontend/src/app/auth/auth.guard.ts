@@ -4,6 +4,7 @@ import { AuthService } from './auth.service';
 
 @Injectable({ providedIn: 'root' })
 
+//auth guard to protect routes that require authentication
 export class AuthGuard implements CanActivate {
 
   constructor(
@@ -11,6 +12,7 @@ export class AuthGuard implements CanActivate {
     private router: Router
   ) {}
 
+  //canActivate method checks if the user is logged in, if not redirects to login page
   canActivate(): boolean | UrlTree {
     return this.authService.isLoggedIn()
       ? true

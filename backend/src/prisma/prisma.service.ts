@@ -6,14 +6,14 @@ import { PrismaPg } from '@prisma/adapter-pg';
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleDestroy {
   constructor() {
-    // Χρήση του adapter για PostgreSQL
+    // Use the PrismaPg adapter for PostgreSQL
     const adapter = new PrismaPg({
       connectionString: process.env.DIRECT_DATABASE_URL as string,
     });
     super({ adapter });
   }
 
-  // Κλεισίματος σύνδεσης όταν τερματίζεται το module
+  // Close the database connection when the module is destroyed
   async onModuleDestroy() {
     await this.$disconnect();
   }

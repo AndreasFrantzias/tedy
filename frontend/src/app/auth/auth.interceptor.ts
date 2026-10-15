@@ -14,6 +14,7 @@ import {
 } from 'rxjs';
 import { AuthService } from './auth.service';
 
+//interceptor to add JWT token to outgoing HTTP requests and handle 401 errors
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
   constructor(
@@ -32,6 +33,7 @@ export class AuthInterceptor implements HttpInterceptor {
     );
   }
 
+  //adds jwt token to the request headers (if the user is logged in)
   private addToken(
     req: HttpRequest<unknown>
   ): HttpRequest<unknown> {
@@ -39,6 +41,7 @@ export class AuthInterceptor implements HttpInterceptor {
     if (!token) {
       return req;
     }
+    //clone request and add Authorization header with Bearer token
     return req.clone({
       setHeaders: {
         Authorization: `Bearer ${token}`
@@ -48,6 +51,7 @@ export class AuthInterceptor implements HttpInterceptor {
 
   private handleError(error: HttpErrorResponse) {
     if (error.status === 401) {
+      //if error is 401 ,log out user and redirect to login page
       this.authService.logout();
       this.router.navigate(['/login']);
     }

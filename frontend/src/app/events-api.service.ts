@@ -16,10 +16,14 @@ export class EventsApiService {
 
   constructor(private http: HttpClient) {}
 
+  //GET /events?category=...&q=...&dateFrom=...&dateTo=...&priceMin=...&priceMax=...&city=...&page=...&pageSize=...
   search(params: SearchEventsParams): Observable<SearchEventsResult> {
+    //go through each filter
     let httpParams = new HttpParams();
     Object.entries(params).forEach(([key, value]) => {
+      //skip empty ones
       if (value !== undefined && value !== null && value !== '') {
+        //add ?key=value
         httpParams = httpParams.set(key, String(value));
       }
     });

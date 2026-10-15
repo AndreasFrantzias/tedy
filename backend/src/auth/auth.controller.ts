@@ -19,18 +19,21 @@ export class AuthController {
   @Public()
   @Post('login')
   login(@Body() loginDto: LoginDto) {
+    //take LoginDto and return a JWT token
     return this.authService.login(loginDto.username, loginDto.password);
   }
 
   @Public()
   @Post('register')
   register(@Body() registerDto: RegisterDto) {
+    //take a RegisterDto and creates a new user
     return this.authService.register(registerDto);
   }
 
   @Patch('users/:id/approve')
   @Roles('admin')
   approve(@Param('id', ParseIntPipe) id: number) {
+    //take userID and set approval status to APPROVED
     return this.authService.setApprovalStatus(id, 'APPROVED');
   }
 

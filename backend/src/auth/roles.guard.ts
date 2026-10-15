@@ -15,14 +15,16 @@ interface RequestWithUser extends Request {
 export class RolesGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
-  // Έλεγχος ότι ο χρήστης έχει τουλάχιστον έναν από τους απαιτούμενους ρόλους
+  //check that user has at least one of the required roles
   canActivate(context: ExecutionContext): boolean {
     const requiredRoles = this.reflector.getAllAndOverride<string[]>(
       ROLES_KEY,
       [context.getHandler(), context.getClass()],
     );
+    
+    //if no roles are required, allow access
     if (!requiredRoles) {
-      return true; // Αν δεν υπάρχουν ρόλοι, επιτρέπεται η πρόσβαση
+      return true; 
     }
     const request = context.switchToHttp().getRequest<RequestWithUser>();
     const roles = request.user?.roles ?? [];

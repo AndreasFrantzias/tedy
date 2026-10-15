@@ -6,7 +6,7 @@ import { escapeXml } from '../common/xml';
 export class ExportService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // Φορτώνει όλα τα events μαζί με τις σχετικές σχέσεις
+  //loads all events with their related relations
   private async loadEvents() {
     return this.prisma.event.findMany({
       include: {
@@ -25,13 +25,15 @@ export class ExportService {
     });
   }
 
-  // Μετατροπή σε JSON
+  //Convert events to JSON
   async toJson() {
     const events = await this.loadEvents();
     return {
+      //reshape data to JSON structure
       Events: events.map((e) => ({
         EventID: e.eventId,
         Title: e.title,
+        //flatten categories to an array of category names
         Category: e.categories.map((c) => c.name),
         EventType: e.eventType,
         Venue: e.venue,
@@ -42,12 +44,14 @@ export class ExportService {
           e.lat !== null && e.lng !== null
             ? { Latitude: e.lat, Longitude: e.lng }
             : undefined,
+        //convert date to ISO string
         StartDateTime: e.startDateTime.toISOString(),
         EndDateTime: e.endDateTime.toISOString(),
         Capacity: e.capacity,
         TicketTypes: e.ticketTypes.map((t) => ({
           TicketTypeID: t.ticketTypeId,
           Name: t.name,
+          //convert price to number
           Price: Number(t.price),
           Quantity: t.quantity,
           Available: t.available,
@@ -69,16 +73,17 @@ export class ExportService {
     };
   }
 
-  // Μετατροπή σε XML
+  //Convert events to XML
   async toXml(): Promise<string> {
     const events = await this.loadEvents();
     const esc = (v: string) => escapeXml(v);
 
+    //reshape data to XML structure
     const eventsXml = events
       .map((e) => {
         const categories = e.categories
-          .map((c) => `    <Category>${esc(c.name)}</Category>`)
-          .join('\n');
+          .map((c) => `    <Category>${esc(c.name)}</Category>`) //flatten categories to XML elements
+          .join('\n'); //join with newline for readability
 
         const geoLocation =
           e.lat !== null && e.lng !== null

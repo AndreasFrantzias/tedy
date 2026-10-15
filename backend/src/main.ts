@@ -7,6 +7,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
+  // check if the SSL certificate and key files exist
   const keyPath = path.join(process.cwd(), 'certs', 'key.pem');
   const certPath = path.join(process.cwd(), 'certs', 'cert.pem');
   const httpsOptions =
@@ -17,6 +18,7 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     httpsOptions,
   });
+  //global validation pipe for request validation
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -25,6 +27,7 @@ async function bootstrap() {
     }),
   );
 
+  //enable CORS (frontend ) running on localhost:4200
   app.enableCors({
     origin: ['https://localhost:4200', 'http://localhost:4200'],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
@@ -33,4 +36,5 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT ?? 3000);
 }
+//start the application
 void bootstrap();

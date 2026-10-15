@@ -10,10 +10,12 @@ export class BookingsApiService {
 
   constructor(private http: HttpClient) {}
 
+  //POST /bookings
   create(input: CreateBookingInput): Observable<BookingDto> {
     return this.http.post<BookingDto>(this.baseUrl, input);
   }
 
+  //GET /bookings/mine 
   findMine(): Observable<BookingDto[]> {
     return this.http.get<BookingDto[]>(`${this.baseUrl}/mine`);
   }

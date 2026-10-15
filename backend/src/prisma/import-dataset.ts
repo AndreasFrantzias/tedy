@@ -6,23 +6,21 @@ import * as bcrypt from 'bcrypt';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/prisma/client.js';
 
-/**
- * Imports a manageable part of the provided event recommendation dataset.
- * This gives the catalog enough real-looking events and interactions for the
- * Biased Matrix Factorization recommender to produce meaningful results.
- *
- * events.csv is anonymized (no titles/categories — only c_1..c_100 cluster
- * word-count columns), so Title/Category/Description are synthesized from
- * the dominant cluster and the event's city. Most rows with attendee/interest
- * data lack city/country text (only lat/lng), so those fall back to placeholders.
- *
- * We first pick events that appear in the attendee or interest files, otherwise
- * the imported catalog would have many events but almost no useful interactions.
- */
 
+/** 
+* One-time script: imports part of the event dataset (events, bookings, views)
+ * so the recommender has real data to learn from.
+ *
+ * The dataset has no titles or categories, so those are generated.
+ * Events that people booked or viewed are imported first.
+*/
+
+// How many events to import (override with IMPORT_MAX_EVENTS in .env)
 const MAX_EVENTS = Number(process.env.IMPORT_MAX_EVENTS ?? 600);
+// CSV folder sits next to backend/ (script is run from inside backend/)
 const DATASET_DIR = path.join(process.cwd(), '..', 'rel_event_csvs');
 
+// The dataset has no real categories, so each event's strongest cluster is mapped onto one of these
 const CATEGORY_NAMES = [
   'Music',
   'Sports',
@@ -38,14 +36,19 @@ const CATEGORY_NAMES = [
   'Outdoors',
 ];
 
+// Standalone script (not part of the Nest app), so it creates its own Prisma client
+// with the same connection settings as PrismaService.
 const adapter = new PrismaPg({
   connectionString: process.env.DIRECT_DATABASE_URL!,
 });
 const prisma = new PrismaClient({ adapter });
 
+// dataset user id -> our DB user id, so each user is only looked up / created once
 const userIdCache = new Map<string, number>();
+// All imported users share one password; hashed once in main() because bcrypt is slow
 let sharedPasswordHash: string;
 
+// Returns the DB id for a dataset user, creating a "ds_<id>" account the first time it's seen
 async function getOrCreateDatasetUser(datasetUserId: string): Promise<number> {
   const cached = userIdCache.get(datasetUserId);
   if (cached !== undefined) {
@@ -68,11 +71,12 @@ async function getOrCreateDatasetUser(datasetUserId: string): Promise<number> {
   return user.id;
 }
 
+// Plain comma split: fine for this dataset, which has no quoted fields containing commas
 function splitCsvLine(line: string): string[] {
   return line.split(',');
 }
 
-/** Yields each data row (as split columns) from a CSV file, skipping the header line. */
+// Streams line by line instead of loading the whole file, since the CSVs are large
 async function* readCsvRows(filePath: string): AsyncGenerator<string[]> {
   const rl = readline.createInterface({ input: fs.createReadStream(filePath) });
   let isHeader = true;
@@ -85,17 +89,19 @@ async function* readCsvRows(filePath: string): AsyncGenerator<string[]> {
   }
 }
 
+// One parsed row of events.csv
 interface RawEventRow {
-  eventId: string;
+  eventId: string; // dataset's event id (not our DB id)
   organizerUserId: string;
   startDate: Date;
   city: string;
   country: string;
   lat: number;
   lng: number;
-  clusters: number[];
+  clusters: number[]; // c_1..c_100 word-count columns, used to pick a category
 }
 
+// Step 1: collect ids of events that have at least one "yes" attendee or one interest record
 async function collectInteractionEventIds(): Promise<Set<string>> {
   const ids = new Set<string>();
 
@@ -118,15 +124,17 @@ async function collectInteractionEventIds(): Promise<Set<string>> {
   return ids;
 }
 
+// Step 2: pick up to MAX_EVENTS rows from events.csv, preferring events that have interactions
 async function selectEventRows(
   interactionIds: Set<string>,
 ): Promise<RawEventRow[]> {
   const filePath = path.join(DATASET_DIR, 'events.csv');
 
-  const priorityRows: RawEventRow[] = [];
-  const fillerRows: RawEventRow[] = [];
+  const priorityRows: RawEventRow[] = []; // events with bookings/views
+  const fillerRows: RawEventRow[] = []; // other events, used only to fill up to MAX_EVENTS
 
   for await (const cols of readCsvRows(filePath)) {
+    // Stop reading early once both lists are full (events.csv is very large)
     if (
       priorityRows.length >= interactionIds.size &&
       fillerRows.length >= MAX_EVENTS
@@ -134,8 +142,10 @@ async function selectEventRows(
       break;
     }
 
+    //empty slots skip the state and zip columns
     const [eventId, organizerUserId, startTime, city, , , country, lat, lng] =
       cols;
+    // Skip rows with no location or an unparseable start date
     if (!eventId || !lat || !lng) {
       continue;
     }
@@ -152,6 +162,7 @@ async function selectEventRows(
       country: country || 'Unknown',
       lat: Number(lat),
       lng: Number(lng),
+      // Columns 9..108 are c_1..c_100; blanks become 0
       clusters: cols.slice(9, 109).map((v) => Number(v) || 0),
     };
 
@@ -162,24 +173,29 @@ async function selectEventRows(
     }
   }
 
+  // Priority events first, then filler, capped at MAX_EVENTS total
   return [...priorityRows.slice(0, MAX_EVENTS), ...fillerRows].slice(
     0,
     MAX_EVENTS,
   );
 }
 
+//what we remember about each created event, so bookings/views can link to it
 interface ImportedEvent {
   dbId: number;
   ticketTypeDbId: number;
   price: number;
 }
 
+// Step 3: create the selected events in the DB.
+// Returns a map of dataset event id -> ImportedEvent.
 async function importEvents(
   rows: RawEventRow[],
 ): Promise<Map<string, ImportedEvent>> {
   const selected = new Map<string, ImportedEvent>();
 
   for (const row of rows) {
+    // Find the cluster with the highest count and turn it into a category name
     let maxIndex = 0;
     for (let i = 1; i < row.clusters.length; i++) {
       if (row.clusters[i] > row.clusters[maxIndex]) {
@@ -188,14 +204,19 @@ async function importEvents(
     }
     const category = CATEGORY_NAMES[maxIndex % CATEGORY_NAMES.length];
 
+    // Rows without an organizer all share one fallback organizer account
     const organizerId = row.organizerUserId
       ? await getOrCreateDatasetUser(row.organizerUserId)
       : await getOrCreateDatasetUser('fallback-organizer');
 
-    const capacity = 50 + Math.floor(Math.random() * 250);
-    const price = Math.round((5 + Math.random() * 45) * 100) / 100;
-    const endDate = new Date(row.startDate.getTime() + 2 * 60 * 60 * 1000);
+    // The dataset has no capacity, price or end time, so make up plausible values
+    const capacity = 50 + Math.floor(Math.random() * 250); // 50..299
+    const price = Math.round((5 + Math.random() * 45) * 100) / 100; // 5.00..50.00
+    const endDate = new Date(row.startDate.getTime() + 2 * 60 * 60 * 1000); // +2 hours
 
+    // Create the event with a placeholder eventId, then set it to "EV<db id>".
+    // The public id depends on the auto-increment id, which only exists after insert.
+    // Wrapped in a transaction so an event is never left with "PENDING".
     const event = await prisma.$transaction(async (tx) => {
       const created = await tx.event.create({
         data: {
@@ -214,12 +235,14 @@ async function importEvents(
           description: `An imported community ${category.toLowerCase()} event in ${row.city}, ${row.country}.`,
           status: 'PUBLISHED',
           organizerId,
+          // Reuse the category row if it exists, otherwise create it
           categories: {
             connectOrCreate: {
               where: { name: category },
               create: { name: category },
             },
           },
+          // Every imported event gets a single ticket type
           ticketTypes: {
             create: {
               ticketTypeId: 'T1',
@@ -249,6 +272,7 @@ async function importEvents(
   return selected;
 }
 
+// Step 4: turn every "yes" attendee row into a confirmed 1-ticket booking
 async function importBookings(
   events: Map<string, ImportedEvent>,
 ): Promise<void> {
@@ -260,6 +284,7 @@ async function importBookings(
     if (status !== 'yes' || !userId) {
       continue;
     }
+    // Skip attendees of events we didn't import
     const imported = events.get(eventId);
     if (!imported) {
       continue;
@@ -268,6 +293,7 @@ async function importBookings(
     const attendeeId = await getOrCreateDatasetUser(userId);
 
     const booking = await prisma.$transaction(async (tx) => {
+      // Take one ticket only if one is still available; count 0 means sold out, so skip
       const decremented = await tx.ticketType.updateMany({
         where: { id: imported.ticketTypeDbId, available: { gte: 1 } },
         data: { available: { decrement: 1 } },
@@ -275,6 +301,7 @@ async function importBookings(
       if (decremented.count === 0) {
         return null;
       }
+      // Same placeholder-then-update trick as events: bookingId becomes "B<db id>"
       const created = await tx.booking.create({
         data: {
           bookingId: 'PENDING',
@@ -300,6 +327,7 @@ async function importBookings(
   console.log(`Imported ${bookingCount} bookings.`);
 }
 
+// Step 5: turn every interest row into an event view (the recommender uses views as signals)
 async function importViews(events: Map<string, ImportedEvent>): Promise<void> {
   const filePath = path.join(DATASET_DIR, 'event_interest.csv');
   let viewCount = 0;
@@ -318,6 +346,7 @@ async function importViews(events: Map<string, ImportedEvent>): Promise<void> {
       data: {
         userId: userDbId,
         eventId: imported.dbId,
+        // Fall back to "now" if the dataset timestamp can't be parsed
         viewedAt: isNaN(viewedAt.getTime()) ? new Date() : viewedAt,
       },
     });
@@ -327,7 +356,9 @@ async function importViews(events: Map<string, ImportedEvent>): Promise<void> {
   console.log(`Imported ${viewCount} event views.`);
 }
 
+// Runs the steps in order. Events must exist before bookings/views can point to them.
 async function main() {
+  // Every imported user can log in with password "dataset123"
   sharedPasswordHash = await bcrypt.hash('dataset123', 10);
 
   console.log(
@@ -353,6 +384,7 @@ async function main() {
   console.log('Dataset import complete.');
 }
 
+// exit with code 1 on failure and always close the DB connection
 main()
   .catch((error) => {
     console.error(error);

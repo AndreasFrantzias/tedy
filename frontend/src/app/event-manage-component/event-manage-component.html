@@ -1,25 +1,16 @@
 <section class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
   <div>
-    <span class="pill pill-purple mb-3">Organizer Pro</span>
-    <h1 class="text-gradient">Event Monitoring</h1>
-    <p class="muted mb-0">Real-time performance of your live and upcoming events.</p>
+    <h1 class="text-gradient">My Events</h1>
+    <p class="muted mb-0">Create, publish and cancel your events, and see their bookings.</p>
   </div>
   <div class="d-flex gap-2">
-    <button class="btn-ghost" type="button"><span class="material-symbols-outlined align-middle">download</span></button>
-    <button class="btn-ghost" type="button"><span class="material-symbols-outlined align-middle">refresh</span></button>
-    <a class="btn-neon" routerLink="/my-events/new"><span class="material-symbols-outlined align-middle">add_circle</span> Create Event Wizard</a>
+    <a class="btn-neon" routerLink="/my-events/new"><span class="material-symbols-outlined align-middle">add_circle</span> Create Event</a>
   </div>
 </section>
 
 <section class="split-pane" *ngIf="events$ | async as events; else loading">
   <aside class="glass-card p-4">
-    <h2 class="h4">System Architect Notes</h2>
-    <div class="architecture-note mb-3">
-      <p class="mb-2"><strong>Protected Routes:</strong> Layout checks AuthContext.user.role === ORGANIZER.</p>
-      <p class="mb-2"><strong>AuthStore:</strong> JWT persistence with auto-refresh on 401.</p>
-      <p class="mb-0"><strong>State:</strong> Optimistic deletes and atomic cancel actions.</p>
-    </div>
-    <h2 class="h4">Portfolio</h2>
+    <h2 class="h4">Events</h2>
     <div class="d-grid gap-3">
       <div class="metric-card p-3" *ngFor="let event of events">
         <div class="d-flex justify-content-between gap-2">
@@ -40,8 +31,7 @@
 
   <div class="glass-card p-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
-      <h2 class="h4 mb-0">Real-time booking tables</h2>
-      <div class="d-flex gap-2"><input class="form-control" placeholder="Search" /><span class="pill">All Status</span><span class="pill">Sort by: Revenue</span></div>
+      <h2 class="h4 mb-0">Bookings</h2>
     </div>
     <ng-container *ngFor="let event of events">
       <div class="metric-card p-3 mb-4">

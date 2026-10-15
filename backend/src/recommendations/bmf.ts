@@ -12,20 +12,23 @@ export interface BmfOptions {
   seed?: number;
 }
 
-/**
- * Μικρή υλοποίηση Biased Matrix Factorization
- * Χρησιμοποιεί μόνο βασικές μαθηματικές λειτουργίες
- */
+// Biased Matrix Factorization
+// Prediction (predictIndices):
+//   r̂(u,i) = μ + b_u + b_i + p_u · q_i
+
 export class BiasedMatrixFactorization {
   private readonly numFactors: number;
   private readonly learningRate: number;
   private readonly regularization: number;
   private readonly epochs: number;
   private readonly seed: number;
-
-  private mu = 0; // Μέσος όρος όλων των βαθμολογιών
+  
+  //μ = mean of all ratings (mu)
+  private mu = 0; 
+  // b_u  = user bias,  b_i = item bias  (userBias, itemBias)
   private userBias: Float64Array = new Float64Array(0);
   private itemBias: Float64Array = new Float64Array(0);
+  // p_u, q_i = user / item factor vectors  (userFactors, itemFactors)
   private userFactors: Float64Array[] = [];
   private itemFactors: Float64Array[] = [];
 
@@ -37,16 +40,16 @@ export class BiasedMatrixFactorization {
     this.seed = options.seed ?? 1337;
   }
 
-  // Εκπαίδευση με SGD
+  // Training with SGD
   fit(interactions: Interaction[], numUsers: number, numItems: number): void {
-    // Μέσος όρος βαθμολογιών
+    // Mean of all ratings
     this.mu =
       interactions.length === 0
         ? 0
         : interactions.reduce((sum, r) => sum + r.rating, 0) /
           interactions.length;
 
-    // Αρχικοποίηση bias και factors
+    // Initialization of bias and factors
     this.userBias = new Float64Array(numUsers);
     this.itemBias = new Float64Array(numItems);
     const random = mulberry32(this.seed);
@@ -57,16 +60,21 @@ export class BiasedMatrixFactorization {
       randomVector(this.numFactors, random),
     );
 
-    // Επανάληψη epochs
+    // Training epochs
+    // Loss minimized: Σ_(u,i) (r_ui − r̂_ui)²  +  λ (b_u² + b_i² + ‖p_u‖² + ‖q_i‖²)
+    // γ = learningRate, λ = regularization
     for (let epoch = 0; epoch < this.epochs; epoch++) {
       for (const { userIndex, itemIndex, rating } of interactions) {
         const pu = this.userFactors[userIndex];
         const qi = this.itemFactors[itemIndex];
 
+        // e = r_ui − r̂_ui
         const prediction = this.predictIndices(userIndex, itemIndex);
         const error = rating - prediction;
 
-        // Ενημέρωση bias
+        // Update bias
+        //   b_u ← b_u + γ (e − λ b_u)
+        //   b_i ← b_i + γ (e − λ b_i)
         this.userBias[userIndex] +=
           this.learningRate *
           (error - this.regularization * this.userBias[userIndex]);
@@ -74,7 +82,9 @@ export class BiasedMatrixFactorization {
           this.learningRate *
           (error - this.regularization * this.itemBias[itemIndex]);
 
-        // Ενημέρωση factors
+        // Update factors (puf/qif keep the old values so each update uses the other's old value)
+        //   p_u ← p_u + γ (e q_i − λ p_u)
+        //   q_i ← q_i + γ (e p_u − λ q_i)
         for (let f = 0; f < this.numFactors; f++) {
           const puf = pu[f];
           const qif = qi[f];
@@ -87,7 +97,7 @@ export class BiasedMatrixFactorization {
     }
   }
 
-  // Πρόβλεψη βαθμολογίας
+  // Prediction of ratings
   predictIndices(userIndex: number, itemIndex: number): number {
     if (!this.hasUser(userIndex) || itemIndex < 0 || itemIndex >= this.itemFactors.length) {
       return this.mu;
@@ -95,6 +105,8 @@ export class BiasedMatrixFactorization {
     const pu = this.userFactors[userIndex];
     const qi = this.itemFactors[itemIndex];
     let dot = 0;
+
+    //  p_u · q_i = Σ_f p_u[f] * q_i[f]  (dot product over numFactors)
     for (let f = 0; f < pu.length; f++) {
       dot += pu[f] * qi[f];
     }
@@ -106,7 +118,7 @@ export class BiasedMatrixFactorization {
   }
 }
 
-// Βοηθητική συνάρτηση για τυχαία vector
+// Helper function for generating random vectors
 function randomVector(size: number, random: () => number): Float64Array {
   const v = new Float64Array(size);
   for (let i = 0; i < size; i++) {
@@ -115,7 +127,7 @@ function randomVector(size: number, random: () => number): Float64Array {
   return v;
 }
 
-// Απλή τυχαία γεννήτρια
+// Simple random number generator
 function mulberry32(seed: number): () => number {
   return () => {
     seed |= 0;

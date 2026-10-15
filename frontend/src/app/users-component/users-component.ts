@@ -6,6 +6,7 @@ import { BehaviorSubject, Observable, of, switchMap } from 'rxjs';
 import { API_BASE_URL } from '../api.config';
 import { HttpClient } from '@angular/common/http';
 
+// Admin console
 @Component({
   selector: 'app-users-component',
   standalone: false,
@@ -18,9 +19,10 @@ export class UsersComponent {
   isAdmin$: Observable<boolean>;
   exportXmlUrl = `${API_BASE_URL}/export/events.xml`;
   exportJsonUrl = `${API_BASE_URL}/export/events.json`;
-  query = '';
+  query = ''; 
   activeTab: 'pending' | 'all' | 'organizers' | 'attendees' | 'export' = 'pending';
 
+  // emitting reloads the pending list (after approve/reject)
   private readonly refresh$ = new BehaviorSubject<void>(undefined);
 
   constructor(
@@ -28,6 +30,7 @@ export class UsersComponent {
     private authService: AuthService,
     private http: HttpClient
   ) {
+    // All users, loaded only when logged in
     this.users$ = this.authService.state$.pipe(
       switchMap(state =>
         state.authenticated
@@ -55,16 +58,18 @@ export class UsersComponent {
     this.usersApi.reject(id).subscribe(() => this.refresh$.next());
   }
 
+  // case-insensitive search across name, email and status; empty search matches everyone
   matches(user: PublicUserDto): boolean {
     const q = this.query.trim().toLowerCase();
     if (!q) {
       return true;
     }
     return [user.username, user.email, user.firstName, user.lastName, user.status]
-      .filter(Boolean)
+      .filter(Boolean) // skip empty/missing fields
       .some((value) => String(value).toLowerCase().includes(q));
   }
 
+  // users for the current tab, that also match the search
   visibleUsers(users: PublicUserDto[]): PublicUserDto[] {
     return users.filter((user) => {
       const roleMatches =
@@ -77,16 +82,17 @@ export class UsersComponent {
     });
   }
 
-  /** Export the events XML file by downloading it as a blob */
-  exportXml(): void {
+  // Download via HttpClient (not a plain link) so the interceptor adds the admin token
+  exportFile(format: 'xml' | 'json'): void {
+    const fileUrl = format === 'xml' ? this.exportXmlUrl : this.exportJsonUrl;
     this.http
-      .get(this.exportXmlUrl, { responseType: 'blob' })
+      .get(fileUrl, { responseType: 'blob' })
       .subscribe({
         next: (blob) => {
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = 'events.xml';
+          a.download = `events.${format}`;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
@@ -94,7 +100,7 @@ export class UsersComponent {
           this.activeTab = 'export';
         },
         error: (err) => {
-          console.error('Export XML failed', err);
+          console.error(`Export ${format} failed`, err);
         },
       });
   }

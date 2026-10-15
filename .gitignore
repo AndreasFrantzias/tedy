@@ -26,9 +26,6 @@ Thumbs.db
 # Test coverage
 coverage/
 
-# Local agent settings
-.claude/settings.local.json
-
 # Large datasets (exceed GitHub's 100MB file limit)
 rel_event_csvs/
 *.csv

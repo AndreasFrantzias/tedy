@@ -13,6 +13,7 @@ import { addOsmTiles } from '../leaflet-setup';
   styleUrl: './event-form-component.css',
 })
 export class EventFormComponent implements OnInit, AfterViewInit, OnDestroy {
+  // Check if the user is creating a new event or editing an existing one based on the route parameters
   @ViewChild('eventMapPicker') eventMapPicker?: ElementRef<HTMLDivElement>;
 
   private fb = inject(FormBuilder);
@@ -46,6 +47,7 @@ export class EventFormComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit(): void {
     const idParam = this.route.snapshot.paramMap.get('id');
+    //checkif user is editing an existing event or creating a new one
     if (idParam) {
       this.eventDbId = Number(idParam);
       this.eventsApi.findOne(this.eventDbId).subscribe((event) => {
@@ -86,7 +88,9 @@ export class EventFormComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  
   ngAfterViewInit(): void {
+    //setup the map after the view has been initialized
     setTimeout(() => this.initMap(), 0);
   }
 
@@ -106,8 +110,10 @@ export class EventFormComponent implements OnInit, AfterViewInit, OnDestroy {
     return this.form.get('photos') as FormArray;
   }
 
+
   private createTicketTypeGroup() {
     return this.fb.nonNullable.group({
+      //validation rules for ticket type fields
       ticketTypeId: ['', Validators.required],
       name: ['', Validators.required],
       price: [0, [Validators.required, Validators.min(0)]],
@@ -115,6 +121,7 @@ export class EventFormComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  //initialize leaflet map with event location and marker
   private initMap(): void {
     if (!this.eventMapPicker || this.map) {
       return;
@@ -181,11 +188,13 @@ export class EventFormComponent implements OnInit, AfterViewInit, OnDestroy {
     return this.totalTicketQuantity > (Number(this.form.get('capacity')?.value) || 0);
   }
 
+
   submit(): void {
     if (this.form.invalid || this.capacityExceeded) {
       return;
     }
     this.errorMessage = '';
+    //raw form values and prepare the input for the API call
     const raw = this.form.getRawValue();
     const input: CreateEventInput = {
       title: raw.title,
