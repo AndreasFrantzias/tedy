@@ -9,8 +9,8 @@
 
   <div class="detail-grid app-main-wide">
     <div class="d-grid gap-4">
-      <section class="detail-hero glass-card">
-        <div class="detail-hero-content">
+        <section class="detail-hero glass-card" 
+         [style.backgroundImage]="event.photos && event.photos.length ? 'linear-gradient(135deg, rgba(15,23,42,.2), rgba(15,23,42,.95)), url(' + event.photos[0].url + ')' : null">        <div class="detail-hero-content">
           <div class="d-flex flex-wrap gap-2 mb-3">
             <span class="pill pill-amber" *ngIf="event.status !== 'PUBLISHED'">{{ event.status }}</span>
           </div>

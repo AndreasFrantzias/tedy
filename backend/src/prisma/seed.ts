@@ -2,6 +2,8 @@ import 'dotenv/config';
 import * as bcrypt from 'bcrypt';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/prisma/client.js';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const adapter = new PrismaPg({
   connectionString: process.env.DIRECT_DATABASE_URL!,
@@ -9,15 +11,18 @@ const adapter = new PrismaPg({
 
 const prisma = new PrismaClient({ adapter });
 
-async function main() {
-  // The administrator is available immediately after seeding
-  const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? 'admin123';
-  const adminPasswordHash = await bcrypt.hash(adminPassword, 10);
-  await prisma.user.upsert({
+export async function runSeed() {
+  console.log('Seeding database...');
+
+  // Shared password for all dataset users
+  const sharedPasswordHash = await bcrypt.hash('dataset123', 10);
+
+  // Create default users (admin, organizer, user)
+  const admin = await prisma.user.upsert({
     where: { username: 'admin' },
     update: {
       email: 'admin@example.com',
-      passwordHash: adminPasswordHash,
+      passwordHash: sharedPasswordHash,
       roles: ['admin'],
       active: true,
       status: 'APPROVED',
@@ -25,7 +30,7 @@ async function main() {
     create: {
       username: 'admin',
       email: 'admin@example.com',
-      passwordHash: adminPasswordHash,
+      passwordHash: sharedPasswordHash,
       roles: ['admin'],
       active: true,
       status: 'APPROVED',
@@ -39,13 +44,11 @@ async function main() {
     },
   });
 
-  // Demo organizer used for creating and managing the seeded event.
-  const organizerPasswordHash = await bcrypt.hash('organizer123', 10);
   const organizer = await prisma.user.upsert({
     where: { username: 'organizer' },
     update: {
       email: 'organizer@example.com',
-      passwordHash: organizerPasswordHash,
+      passwordHash: sharedPasswordHash,
       roles: ['organizer'],
       active: true,
       status: 'APPROVED',
@@ -53,7 +56,7 @@ async function main() {
     create: {
       username: 'organizer',
       email: 'organizer@example.com',
-      passwordHash: organizerPasswordHash,
+      passwordHash: sharedPasswordHash,
       roles: ['organizer'],
       active: true,
       status: 'APPROVED',
@@ -67,13 +70,11 @@ async function main() {
     },
   });
 
-  // Demo attendee used for browsing, booking, messaging, and recommendations.
-  const userPasswordHash = await bcrypt.hash('user1234', 10);
-  await prisma.user.upsert({
+  const user = await prisma.user.upsert({
     where: { username: 'user' },
     update: {
       email: 'user@example.com',
-      passwordHash: userPasswordHash,
+      passwordHash: sharedPasswordHash,
       roles: ['attendee'],
       active: true,
       status: 'APPROVED',
@@ -81,7 +82,7 @@ async function main() {
     create: {
       username: 'user',
       email: 'user@example.com',
-      passwordHash: userPasswordHash,
+      passwordHash: sharedPasswordHash,
       roles: ['attendee'],
       active: true,
       status: 'APPROVED',
@@ -95,93 +96,235 @@ async function main() {
     },
   });
 
-  const startDateTime = new Date();
-  startDateTime.setDate(startDateTime.getDate() + 14);
-  startDateTime.setHours(20, 0, 0, 0);
-  const endDateTime = new Date(startDateTime.getTime() + 2 * 60 * 60 * 1000);
+  // Map to keep track of dataset IDs to DB IDs
+  const userIdCache = new Map<string, number>();
+  const eventIdCache = new Map<string, number>();
+  const ticketTypeIdCache = new Map<string, number>();
 
-  await prisma.event.upsert({
-    where: { eventId: 'DEMO-ATHENS-1' },
-    update: {
-      title: 'Athens Demo Music Night',
-      eventType: 'Music',
-      venue: 'Technopolis City Stage',
-      address: 'Pireos 100',
-      city: 'Athens',
-      country: 'Greece',
-      lat: 37.9783,
-      lng: 23.7134,
-      startDateTime,
-      endDateTime,
-      capacity: 120,
-      status: 'PUBLISHED',
-      description:
-        'A seeded published event for manual browsing, booking, and search checks.',
-      organizerId: organizer.id,
-      categories: {
-        set: [],
-        connectOrCreate: [
-          { where: { name: 'Music' }, create: { name: 'Music' } },
-        ],
+  // Helper to get or create a dataset user
+  async function getOrCreateDatasetUser(datasetUserId: string): Promise<number> {
+    const cached = userIdCache.get(datasetUserId);
+    if (cached !== undefined) return cached;
+
+    const username = `ds_${datasetUserId}`;
+    const dbUser = await prisma.user.upsert({
+      where: { username },
+      update: {},
+      create: {
+        username,
+        email: `${username}@dataset.local`,
+        passwordHash: sharedPasswordHash,
+        roles: ['user'],
+        active: true,
+        status: 'APPROVED',
       },
-      ticketTypes: {
-        deleteMany: {},
-        create: [
-          {
-            ticketTypeId: 'GENERAL',
-            name: 'General Admission',
-            price: 15,
-            quantity: 120,
-            available: 120,
-          },
-        ],
-      },
-      photos: { deleteMany: {} },
-    },
+    });
+    userIdCache.set(datasetUserId, dbUser.id);
+    return dbUser.id;
+  }
+
+  // Fallback organizer for events without an organizer
+  const fallbackOrganizer = await prisma.user.upsert({
+    where: { username: 'ds_fallback-organizer' },
+    update: {},
     create: {
-      eventId: 'DEMO-ATHENS-1',
-      title: 'Athens Demo Music Night',
-      eventType: 'Music',
-      venue: 'Technopolis City Stage',
-      address: 'Pireos 100',
-      city: 'Athens',
-      country: 'Greece',
-      lat: 37.9783,
-      lng: 23.7134,
-      startDateTime,
-      endDateTime,
-      capacity: 120,
-      status: 'PUBLISHED',
-      description:
-        'A seeded published event for manual browsing, booking, and search checks.',
-      organizerId: organizer.id,
-      categories: {
-        connectOrCreate: [
-          { where: { name: 'Music' }, create: { name: 'Music' } },
-        ],
-      },
-      ticketTypes: {
-        create: [
-          {
-            ticketTypeId: 'GENERAL',
-            name: 'General Admission',
-            price: 15,
-            quantity: 120,
-            available: 120,
-          },
-        ],
-      },
+      username: 'ds_fallback-organizer',
+      email: 'ds_fallback-organizer@dataset.local',
+      passwordHash: sharedPasswordHash,
+      roles: ['organizer'],
+      active: true,
+      status: 'APPROVED',
     },
   });
 
-  console.log('Database seeded successfully.');
+  // Path to the CSV directory
+  const CSV_DIR = path.join(process.cwd(), 'data/rel_event_csvs');
+
+  // 1. Import events
+  const eventsStream = fs
+    .createReadStream(path.join(CSV_DIR, 'events.csv'))
+    .pipe(csv({ headers: true, skipLines: 0 }));
+
+  let eventCount = 0;
+  for await (const row of eventsStream) {
+    if (eventCount >= 1000) {
+      break; 
+    }
+
+    const values = Object.values(row) as string[];
+    // Map standard dataset columns by their index position
+    const eventId = values[0];
+    const organizerUserId = values[1];
+    const startDateStr = values[2];
+    const city = values[3];
+    const country = values[6];
+    const lat = values[7];
+    const lng = values[8];
+
+    // Basic validation
+    if (!eventId || !startDateStr || !city || !country || !lat || !lng) {
+      continue;
+    }
+
+    const startDate = new Date(startDateStr);
+    if (isNaN(startDate.getTime())) continue;
+
+    const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000); // +2 hours
+
+    const organizerId = organizerUserId
+      ? await getOrCreateDatasetUser(organizerUserId)
+      : fallbackOrganizer.id;
+
+    const capacity = 100;
+    const price = 10;
+
+    const createdEvent = await prisma.$transaction(async (tx) => {
+      const ev = await tx.event.create({
+        data: {
+          eventId: 'PENDING',
+          title: `Event ${eventId}`,
+          eventType: 'General',
+          venue: `${city} Venue`,
+          address: `${city} Main Street`,
+          city: city,
+          country: country,
+          lat: Number(lat),
+          lng: Number(lng),
+          startDateTime: startDate,
+          endDateTime: endDate,
+          capacity,
+          status: 'PUBLISHED',
+          description: `Imported event ${eventId}`,
+          organizerId,
+          categories: {
+            connectOrCreate: {
+              where: { name: 'General' },
+              create: { name: 'General' },
+            },
+          },
+          ticketTypes: {
+            create: {
+              ticketTypeId: 'T1',
+              name: 'General Admission',
+              price,
+              quantity: capacity,
+              available: capacity,
+            },
+          },
+        },
+        include: { ticketTypes: true },
+      });
+      return tx.event.update({
+        where: { id: ev.id },
+        data: { eventId: `EV${ev.id}` },
+        include: { ticketTypes: true },
+      });
+    });
+
+    eventIdCache.set(eventId, createdEvent.id);
+    ticketTypeIdCache.set(eventId, createdEvent.ticketTypes[0].id);
+    eventCount++;
+  }
+  console.log(`Imported ${eventCount} events.`);
+  // 2. Import bookings from event_attendees.csv
+  const attendeesStream = fs
+    .createReadStream(path.join(CSV_DIR, 'event_attendees.csv'))
+    .pipe(csv({ headers: true, skipLines: 0 }));
+
+  let bookingCount = 0;
+  for await (const row of attendeesStream) {
+    if (bookingCount >= 1000) {
+      attendeesStream.destroy(); 
+      break;
+    }
+
+    const values = Object.values(row) as string[];
+    // Map columns by index based on your original destructuring [_, eventId, status, userId]
+    const userId = values[0];
+    const eventId = values[1];
+    const status = values[2];
+
+    if (status !== 'yes' || !eventId || !userId) continue;
+
+    const dbEventId = eventIdCache.get(eventId);
+    if (!dbEventId) continue; // skip events not imported
+
+    const dbUserId = await getOrCreateDatasetUser(userId);
+    const ticketTypeDbId = ticketTypeIdCache.get(eventId);
+    if (!ticketTypeDbId) continue;
+
+    const booking = await prisma.$transaction(async (tx) => {
+      const dec = await tx.ticketType.updateMany({
+        where: { id: ticketTypeDbId, available: { gte: 1 } },
+        data: { available: { decrement: 1 } },
+      });
+      if (dec.count === 0) return null;
+
+      const created = await tx.booking.create({
+        data: {
+          bookingId: 'PENDING',
+          eventId: dbEventId,
+          attendeeId: dbUserId,
+          ticketTypeId: ticketTypeDbId,
+          numberOfTickets: 1,
+          totalCost: 10,
+          status: 'CONFIRMED',
+        },
+      });
+      return tx.booking.update({
+        where: { id: created.id },
+        data: { bookingId: `B${created.id}` },
+      });
+    });
+
+    if (booking) bookingCount++;
+  }
+  console.log(`Imported ${bookingCount} bookings.`);
+  // 3. Import views from event_interest.csv
+  const viewsStream = fs
+    .createReadStream(path.join(CSV_DIR, 'event_interest.csv'))
+    .pipe(csv({ headers: true, skipLines: 0 }));
+
+  let viewCount = 0;
+  for await (const row of viewsStream) {
+    if (viewCount >= 1000) {
+      viewsStream.destroy();
+      break;
+    }
+    const values = Object.values(row) as string[];
+    const userId = values[0];
+    const eventId = values[1];
+    const timestamp = values[4]; // or whichever index holds the date!
+
+    if (!userId || !eventId) continue;
+
+    const dbEventId = eventIdCache.get(eventId);
+    if (!dbEventId) continue;
+
+    const dbUserId = await getOrCreateDatasetUser(userId);
+    const viewedAt = new Date(timestamp);
+    
+    await prisma.eventView.create({
+      data: {
+        userId: dbUserId,
+        eventId: dbEventId,
+        viewedAt: isNaN(viewedAt.getTime()) ? new Date() : viewedAt,
+      },
+    });
+    viewCount++;
+  }
+  console.log(`Imported ${viewCount} event views.`);
+
+  console.log('Database seeding completed.');
 }
 
-main()
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+if (require.main === module) {
+  runSeed()
+    .catch((e) => {
+      console.error(e);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}
