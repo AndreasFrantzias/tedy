@@ -40,8 +40,7 @@
         <span class="pill">Sort by: Relevance</span>
       </div>
 
-      <div class="grid-cards mb-4" *ngIf="results.items.length; else emptyState">
-        <article class="event-card" *ngFor="let event of results.items">
+        <article class="event-card" *ngFor="let event of results.items" [routerLink]="['/events', event.id]" style="cursor: pointer;">          <div class="image-shell">        <article class="event-card" *ngFor="let event of results.items">
           <div class="image-shell">
             <span class="floating-badge">Tickets Available</span>
             <div class="event-cover"></div>
