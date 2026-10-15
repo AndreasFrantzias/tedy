@@ -4,6 +4,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/prisma/client.js';
 import * as fs from 'fs';
 import * as path from 'path';
+import csv from 'csv-parser';
 
 const adapter = new PrismaPg({
   connectionString: process.env.DIRECT_DATABASE_URL!,
